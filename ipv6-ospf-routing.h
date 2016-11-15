@@ -261,14 +261,14 @@ private:
   /// Iterator for container for the network routes
   typedef std::list<std::pair <Ipv6RoutingTableEntry *, uint32_t> >::iterator NetworkRoutesI;
 
-  /// Container for the multicast routes
-  typedef std::list<Ipv6MulticastRoutingTableEntry *> MulticastRoutes;
+  // /// Container for the multicast routes
+  // typedef std::list<Ipv6MulticastRoutingTableEntry *> MulticastRoutes;
 
-  /// Const Iterator for container for the multicast routes
-  typedef std::list<Ipv6MulticastRoutingTableEntry *>::const_iterator MulticastRoutesCI;
+  // /// Const Iterator for container for the multicast routes
+  // typedef std::list<Ipv6MulticastRoutingTableEntry *>::const_iterator MulticastRoutesCI;
 
-  /// Iterator for container for the multicast routes
-  typedef std::list<Ipv6MulticastRoutingTableEntry *>::iterator MulticastRoutesI;
+  // /// Iterator for container for the multicast routes
+  // typedef std::list<Ipv6MulticastRoutingTableEntry *>::iterator MulticastRoutesI;
 
   /**
    * \brief Lookup in the forwarding table for destination.
@@ -295,7 +295,7 @@ private:
   /**
    * \brief the forwarding table for multicast.
    */
-  MulticastRoutes m_multicastRoutes;
+  // MulticastRoutes m_multicastRoutes;
 
   /**
    * \brief Ipv6 reference.
