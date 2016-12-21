@@ -34,12 +34,12 @@ void OSPFHelloTag::Serialize (TagBuffer i) const {
     i.WriteU16(m_routerDeadInterval);
     i.WriteU32(m_designatedRouter);
     i.WriteU32(m_backupDesinatedRouter);
-    for(int i = 0, l = neighbors.size(); i < l; ++i) {
-        i.WriteU32(m_neighbors[i]);
+    for(int idx = 0, l = m_neighbors.size(); idx < l; ++idx) {
+        i.WriteU32(m_neighbors[idx]);
     }
 }
 void OSPFHelloTag::Deserialize (TagBuffer i) {
-    uint32_t buff, size;
+    uint32_t buff;
     buff = i.ReadU32();
     m_routerPriority = (buff & 0xe0000000) >> 24;
     m_options = buff & 0x1fffffff;

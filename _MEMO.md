@@ -1,3 +1,90 @@
+# インターフェースに関するデータ構造
+https://tools.ietf.org/html/rfc2328#page-63
+https://tools.ietf.org/html/rfc5340#section-4.1.2
+
+## Type
+point-to-point | broadcast | NBMA | Point-to-MultiPoint | virtual link
+## State
+- Down
+    - InterfaceUpイベントでPoint-to-pointになる
+- Point-to-point
+他は一旦無視
+- Loopback
+- Waiting
+- DR Other
+- Backup
+- DR
+
+## Interface ID
+v3
+## Instance ID
+v3
+## List of LSAs with link-local scope
+v3
+## IP interface address
+v3
+## IP interface mask
+v3では不在では？
+## Area ID
+面しているネットワークのArea ID
+## HelloInterval
+ハローメッセージ送信間隔
+## RouterDeadInterval
+ネイバーの死活判定基準時間。最後にハローメッセージが来てからこの時間経過すると死んだと見なす。
+## InfTransDelay
+このインターフェースからLSUパケットを送信するのにかかる秒数の推定値。LSUパケットに含まれるLSAそれぞれのLSageの値は、この値のぶんだけ送信前に増加される。この値は送信と伝播遅延を考慮し、また0以上でなければならない。
+## Router Priority
+uint8。DR選出時に最もこの値の高いものが選出される。0になっているとDRにはならない。ハローパケットに含まれて伝達される。
+## Hello Timer
+ハローパケットを送信するためのタイマー。HelloIntervalごと定期的に発火する。非ブロードキャストなネットワーク上では、ハローパケットは個別に送信を行う。
+## Wait Timer
+WaitingのStateから抜けるためのタイマー。RouterDeadIntervalの値を使う。
+## List of neighboring routers
+ネイバールータの一覧。ハローパケットによって生成される。近隣ルータはこの中の幾つかが選ばれることになる。
+## Designated Router
+## Backup Designated Router
+## Interface output cost(s)
+router-LSAのlink costとして伝達される。0以上の値をとる。
+## RxmtInterval
+近隣ルータへのLSAの再送信間隔秒数。Database DescriptionとLink State Requestの再送信にも使われる。
+## AuType
+## Authentication key
+## List of link prefixes
+参加しているリンクのために設定されるIPv6のプレフィクスリスト。link-LSAによって伝達され、リンクのDRによってintra-area-prefix-LSAによって伝達されうる。
+
+
+
+# ネイバーに関するデータ構造
+## State
+ネイバーの状態です。
+
+## Inactivity Timer
+ハローパケットが来るたびにリセットされるタイマーです。初期値はRouterDeadIntervalです。
+
+## Master/Slave
+ExStart時に決定されます。LSDBの交換プロセスで使います。
+
+## DD Sequence Number
+ネイバーに送信中のDatabaseDescriptionPacketのシーケンス番号を保持します。
+
+## Last received Database Description packet
+最後に受け取ったDDパケット全体を保持します。
+
+## Neighbor ID
+ネイバーのルータIDです。最初にハローパケットを受け取った時に知ることができます。
+
+## Neighbor Priority
+同様
+
+## Neighbor's Interface ID
+
+
+## Neighbor IP address
+ネイバーのIPアドレスはOSPFパケットのソースアドレスとして含まれているはずです。これは仮想リンクでない限り、IPv6のリンクローカルアドレスになります。
+
+## Neighbor's Designated Router
+## Neighbor's Backup Designated Router
+対応するIPアドレスでしたが、v3ではルータIDを保持します。
 
 ## Link State Retransmission List
 各ルータは、アジャセンシーに対して一つずつこのリストを持つ。
@@ -90,3 +177,55 @@ LSUパケットに含まれるLSAのそれぞれに対して次の手順が取�
         1. 暗黙の確認応答として扱った場合、BDRはなんかいろいろやって送り返し、そうでなければ送らない。
         2. 暗黙の確認応答として扱わない場合、直接確認応答を送り返す。
 8. LSDB内のデータの方が新しい場合、DB内のもののLS ageがMaxAgeと等しくかつLSシーケンス番号がMaxSequenceNumberに等しい場合は、単に応答なく破棄します。そうでない場合は、直近のMinLSArrival秒からまだ送信されていないぶんを、LSUとして当該近隣ルータに送信します。このときLSUは近隣ルータに直接送信する必要があり、これをリンク状態再送信リストには入れず、確認応答は送信しないでください。
+
+
+# LSAの生成について
+
+OSPF for IPv6 4.4.3.  Originating LSAs
+https://tools.ietf.org/html/rfc5340#section-4.4.3
+
+OSPF v2 12.4 Originating LSAs
+https://tools.ietf.org/html/rfc2328#page-123
+
+10 + 7個のイベントによってLSAインスタンスが生成されうる
+
+1. ルータ自身が生成したLSAのLSageがLSRefreshTimeに到達したとき。
+    - このときLSage以外の値は同じでよい。
+2. Interfaceの状態が変わったとき。
+    - 新たなrouter-LSAを生成する。
+3. 所属するネットワークのDesignated Routerが変わったとき。
+    - 新たなrouter-LSAを生成する。
+    - 自身が新たなDRとなる場合は、network-LSAも生成する。
+    - 自身がDRでなくなった場合は、network-LSAは生成しない。
+4. ネイバーのひとつがFULLになる、またはなったとき。
+    - 新たなrouter-LSAを生成する。
+    - 自身がDRである場合は、network-LSAも生成する。
+5. (考慮外)エリア境界ルータにおいて、エリア内経路が追加/削除/変更されたとき。
+    - 操作のあった経路に関するsummary-LSAをエリア内に送信する。
+6. (考慮外)エリア境界ルータにおいて、エリア外経路が追加/削除/変更されたとき。
+    - 操作のあった経路に関するsummary-LSAをエリア内に送信する。
+7. (考慮外)エリア境界ルータにおいて、このルータがエリアに新たに追加されたとき。
+    - 適切にエリア内経路とエリア外経路を含んだsummary-LSAを送信する。
+8. (考慮外)エリア境界ルータにおいて、ルータの持つ仮想リンクの設定が変更されたとき。
+    - 新たなrouter-LSAを仮想リンクに流す。
+9. (考慮外)AS境界ルータにおいて、……（省略）
+10. (考慮外)AS境界ルータにおいて、……（省略）
+
+以下、v3追加分
+
+1. ルータのインターフェースの状態かIDが変わったとき。
+    - link-LSAとrouter-LSAs、and/or intra-area-prefix-LSAsを(再)生成するかflushする。
+    - 自身がDRなら、関係のあるnetwork-LSAを再生成するかflushする。
+2. リンクのDRが変更されたとき。
+    - 当該リンクのnetwork-LSAを再生成するかflushする。
+    - ひとつか複数のrouter-LSAs and/or intra-area-prefix-LSAsを(再)生成するかflushする。
+3. ネイバーがFullの状態になるか、Fullから変化したとき。
+    - router-LSAを生成して送信する。
+4. ネイバーのインターフェイスIDが変化したとき。
+    - router-LSAを生成して送信する。
+5. リンクに新たなプレフィクスが追加、または削除、あるいはその両方が行われたとき。
+    - リンクに対してlink-LSAを再生成するか、リンクに存在する唯一のルータとなった場合はintra-area-prefix-LSAを再生成する。
+6. 新たなlink-LSAを受け取って、リンクコレクションのプレフィクスが変化したとき。
+    - ルータがリンクのDRならば、intra-area-prefix-LSAを生成する。
+7. 新たなlink-LSAを受け取って、リンク上の近接ルータが送信するLSAオプションの論理和が変化したとき。
+    - ルータがリンクのDRならば、network-LSAを生成する。
