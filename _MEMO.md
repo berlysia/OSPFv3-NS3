@@ -215,7 +215,7 @@ https://tools.ietf.org/html/rfc2328#page-123
 
 1. ルータのインターフェースの状態かIDが変わったとき。
     - link-LSAとrouter-LSAs、and/or intra-area-prefix-LSAsを(再)生成するかflushする。
-    - 自身がDRなら、関係のあるnetwork-LSAを再生成するかflushする。
+    - (考慮外)自身がDRなら、関係のあるnetwork-LSAを再生成するかflushする。
 2. リンクのDRが変更されたとき。
     - 当該リンクのnetwork-LSAを再生成するかflushする。
     - ひとつか複数のrouter-LSAs and/or intra-area-prefix-LSAsを(再)生成するかflushする。
@@ -225,7 +225,11 @@ https://tools.ietf.org/html/rfc2328#page-123
     - router-LSAを生成して送信する。
 5. リンクに新たなプレフィクスが追加、または削除、あるいはその両方が行われたとき。
     - リンクに対してlink-LSAを再生成するか、リンクに存在する唯一のルータとなった場合はintra-area-prefix-LSAを再生成する。
-6. 新たなlink-LSAを受け取って、リンクコレクションのプレフィクスが変化したとき。
+6. (考慮外)新たなlink-LSAを受け取って、リンクコレクションのプレフィクスが変化したとき。
     - ルータがリンクのDRならば、intra-area-prefix-LSAを生成する。
-7. 新たなlink-LSAを受け取って、リンク上の近接ルータが送信するLSAオプションの論理和が変化したとき。
+7. (考慮外)新たなlink-LSAを受け取って、リンク上の近接ルータが送信するLSAオプションの論理和が変化したとき。
     - ルータがリンクのDRならば、network-LSAを生成する。
+
+intra-area-prefix-LSAはDRが生成する。つまりP2P接続の場合は生成されない。
+network-LSAもDRが生成するので同様に生成されない。
+つまり喫緊に実装の必要があるのはlink-LSAとrouter-LSAのみ

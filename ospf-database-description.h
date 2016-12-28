@@ -1,7 +1,7 @@
-#ifndef OSPF_DD_TAG_H
-#define OSPF_DD_TAG_H
+#ifndef OSPF_DD_H
+#define OSPF_DD_H
 
-#include "ns3/tag.h"
+#include "ospf-header.h"
 #include "ospf-lsa-header.h"
 #include <vector>
 
@@ -9,7 +9,7 @@ using namespace ns3;
 
 namespace ns3 {
 
-class OSPFDatabaseDescriptionTag : public Tag {
+class OSPFDatabaseDescriptionHeader : public OSPFHeader {
 private:
     uint24_t m_options;
     uint16_t m_mtu;
@@ -20,15 +20,16 @@ private:
     vector<OSPFLSAHeader> m_lsaHeaders;
 
 public:
-    OSPFDatabaseDescriptionTag () {};
+    OSPFDatabaseDescriptionHeader () : OSPFHeader () {};
+    ~OSPFDatabaseDescriptionHeader () {};
 
     static TypeId GetTypeId();
 
-    // from `Tag`
-    virtual void Deserialize (TagBuffer i); 
-    virtual uint32_t GetSerializedSize () const; 
-    virtual void Print (std::ostream &os) const; 
-    virtual void Serialize (TagBuffer i) const;
+    // from `Header`
+    virtual uint32_t Deserialize (Buffer::Iterator start);
+    virtual uint32_t GetSerializedSize () const;
+    virtual void Print (std::ostream &os) const;
+    virtual void Serialize (Buffer::Iterator start) const;
 
     void SetOptions(uint24_t options) {m_options = options;}
     uint24_t GetOptions() {return m_options;}

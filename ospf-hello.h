@@ -1,7 +1,7 @@
-#ifndef OSPF_HELLO_TAG_H
-#define OSPF_HELLO_TAG_H
+#ifndef OSPF_HELLO_H
+#define OSPF_HELLO_H
 
-#include "ns3/tag.h"
+#include "ospf-header.h"
 
 #include <vector>
 
@@ -9,7 +9,7 @@ using namespace ns3;
 
 namespace ns3 {
 
-class OSPFHelloTag : public Tag {
+class OSPFHello : public OSPFHeader {
 private:
     typeset uint32_t RouterId
     uint8_t m_routerPriority;
@@ -25,11 +25,11 @@ public:
 
     static TypeId GetTypeId();
 
-    // from `Tag`
-    virtual void Deserialize (TagBuffer i); 
+    // from `Header`
+    virtual uint32_t Deserialize (Buffer::Iterator start); 
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
-    virtual void Serialize (TagBuffer i) const;
+    virtual void Serialize (Buffer::Iterator start) const;
 
     void SetRouterPriority(uint8_t routerPriority) {m_routerPriority = routerPriority;}
     uint8_t GetRouterPriority() {return m_routerPriority;}

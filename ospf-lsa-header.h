@@ -1,15 +1,34 @@
 #ifndef OSPF_LSA_HEADER_H
 #define OSPF_LSA_HEADER_H
 
-#include "ns3/tag.h"
 #include "ns3/ipv6-address.h"
+
+/*
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           LS Age              |           LS Type             |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                       Link State ID                           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    Advertising Router                         |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    LS Sequence Number                         |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |        LS Checksum            |             Length            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                              The LSA Header
+
+*/
 
 using namespace ns3;
 
 namespace ns3 {
 
 class OSPFLSAHeader {
-private:
+protected:
     uint16_t m_age;
     uint16_t m_type;
     uint32_t m_id;
@@ -40,20 +59,20 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (TagBuffer i) const;
 
-    void SetAge(uint16_t age) {m_age = age;}
-    uint16_t GetAge() {return m_age;}
-    void SetType(uint16_t type) {m_type = type;}
-    uint16_t GetType() {return m_type;}
-    void SetId(uint32_t id) {m_id = id;}
-    uint32_t GetId() {return m_id;}
-    void SetAdvertisingRouter(uint32_t advRtr) {m_advRtr = advRtr;}
-    uint32_t GetAdvertisingRouter() {return m_advRtr;}
-    void SetSequenceNumber(uint32_t seqNum) {m_seqNum = seqNum;}
-    uint32_t GetSequenceNumber() {return m_seqNum;}
-    void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
-    uint16_t GetCheckSum() {return m_checksum;}
-    void SetLength(uint16_t length) {m_length = length;}
-    uint16_T GetLength() {return m_length;}
+    virtual void SetAge(uint16_t age) {m_age = age;}
+    virtual uint16_t GetAge() {return m_age;}
+    virtual void SetType(uint16_t type) {m_type = type;}
+    virtual uint16_t GetType() {return m_type;}
+    virtual void SetId(uint32_t id) {m_id = id;}
+    virtual uint32_t GetId() {return m_id;}
+    virtual void SetAdvertisingRouter(uint32_t advRtr) {m_advRtr = advRtr;}
+    virtual uint32_t GetAdvertisingRouter() {return m_advRtr;}
+    virtual void SetSequenceNumber(uint32_t seqNum) {m_seqNum = seqNum;}
+    virtual uint32_t GetSequenceNumber() {return m_seqNum;}
+    virtual void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
+    virtual uint16_t GetCheckSum() {return m_checksum;}
+    virtual void SetLength(uint16_t length) {m_length = length;}
+    virtual uint16_t GetLength() {return m_length;}
 };
 
 }

@@ -10,7 +10,7 @@ using namespace ns3;
 
 namespace ns3 {
 class OSPFHeader : public Header {
-private:
+protected:
     typeset uint32_t RouterId
     uint8_t m_version;
     uint8_t m_type;

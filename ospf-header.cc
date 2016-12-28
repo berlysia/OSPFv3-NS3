@@ -16,34 +16,34 @@ TypeId OSPFHeader::GetTypeId () {
 }
 
 uint32_t OSPFHeader::GetSerializedSize () const {
-    return 1 + 1 + 2 + 4 + 4 + 2 + 1 + 1;
+    return 16;
 } 
 void OSPFHeader::Print (std::ostream &os) const {
-    os << "version: " << m_version << ", ";
-    os << "type   : " << m_type << ", ";
-    os << "router : " << m_routerId << ", ";
-    os << "area   : " << m_areaId;
+    os << "version: " << m_version << "\n";
+    os << "type   : " << m_type << "\n";
+    os << "router : " << m_routerId << "\n";
+    os << "area   : " << m_areaId << "\n";
 } 
 void OSPFHeader::Serialize (Buffer::Iterator start) const {
-    i.WriteHtonU8(m_version);
-    i.WriteHtonU8(m_type);
-    i.WriteHtonU16(m_packetLength);
-    i.WriteHtonU32(m_routerId);
-    i.WriteHtonU32(m_areaId);
-    i.WriteHtonU16(m_checksum);
-    i.WriteHtonU8(m_instanceId);
-    i.WriteHtonU8(m_padding);
+    start.WriteHtonU8(m_version);
+    start.WriteHtonU8(m_type);
+    start.WriteHtonU16(m_packetLength);
+    start.WriteHtonU32(m_routerId);
+    start.WriteHtonU32(m_areaId);
+    start.WriteHtonU16(m_checksum);
+    start.WriteHtonU8(m_instanceId);
+    start.WriteHtonU8(m_padding);
 }
 uint32_t OSPFHeader::Deserialize (Buffer::Iterator start) {
-    m_version = i.ReadNtohU8();
-    m_type = i.ReadNtohU8();
-    m_packetLength = i.ReadNtohU16();
-    m_routerId = i.ReadNtohU32();
-    m_areaId = i.ReadNtohU32();
-    m_checksum = i.ReadNtohU16();
-    m_instanceId = i.ReadNtohU8();
-    m_padding = i.ReadNtohU8();
-    return 1 + 1 + 2 + 4 + 4 + 2 + 1 + 1;
+    m_version = start.ReadNtohU8();
+    m_type = start.ReadNtohU8();
+    m_packetLength = start.ReadNtohU16();
+    m_routerId = start.ReadNtohU32();
+    m_areaId = start.ReadNtohU32();
+    m_checksum = start.ReadNtohU16();
+    m_instanceId = start.ReadNtohU8();
+    m_padding = start.ReadNtohU8();
+    return GetSerializedSize ();
 }
 
 } // namespace ns3
