@@ -1,36 +1,31 @@
 #include <iostream>
+#include <vector>
 using namespace std;
 
-class A {
-protected:
-  int v;
-public:
-  A(int i) : v(i) {}
-  virtual void set(int _v) {v = _v;}
-  virtual int get() {return v;}
-  void Print (ostream& os = cout) {
-    os << "A [ " << v << " ]" << endl;
-  }
+struct A {
+    int type;
+    int v;
+    A(){type = 0;}
+    virtual void Dummy() {}
+    virtual void Print () const {
+       cout << "A: " << v << endl;
+    }
 };
 
-class B : public A {
-protected:
-  int x;
-public:
-  B(int i) : A(i), x(i * 2) {}
-  virtual void set(int _x) {x = _x;}
-  virtual int get() {return x;}
-  void Print (ostream& os = cout) {
-    os << "B [ " << v << ", " << x << " ]" << endl;
-  }
+struct B : public A {
+    int x;
+    B(){type = 1;}
+    virtual void Print () const {
+       cout << "B: " << v << ", " << x << endl;
+    }
 };
 
-int main() {
-  B x(123);
-  x.Print();
-  A xx = dynamic_cast<A&>(x);
-  xx.Print();
-  x.Print();
+// int main() {
+//     B b; b.v = 345; b.x = 4567;
+//     b.Print();
 
-  return 0;
-}
+//     A &a = b;
+//     a.Print();
+
+//     return 0;
+// }

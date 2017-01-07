@@ -1,0 +1,5 @@
+def build(bld):
+    obj = bld.create_ns3_program('ospf', ['core', 'internet'])
+    obj.source = [
+        'test.cc'
+    ]

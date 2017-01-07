@@ -9,9 +9,17 @@
 using namespace ns3;
 
 namespace ns3 {
+namespace ospf {
+
+#define OSPF_TYPE_HELLO 1
+#define OSPF_TYPE_DATABASE_DESCRIPTION 2
+#define OSPF_TYPE_LINK_STATE_REQUEST 3
+#define OSPF_TYPE_LINK_STATE_UPDATE 4
+#define OSPF_TYPE_LINK_STATE_ACK 5
+
 class OSPFHeader : public Header {
 protected:
-    typeset uint32_t RouterId
+    typedef uint32_t RouterId;
     uint8_t m_version;
     uint8_t m_type;
     uint16_t m_packetLength;
@@ -19,15 +27,17 @@ protected:
     uint32_t m_areaId;
     uint16_t m_checksum;
     uint8_t m_instanceId;
-    uint8_t m_padding;
 
 public:
-    OSPFHeader () {};
-    virtual ~OSPFHeader();
+    OSPFHeader () {
+        m_version = 3;
+    };
+    virtual ~OSPFHeader() {};
 
     static TypeId GetTypeId();
 
     // from `Header`
+    virtual TypeId GetInstanceTypeId (void) const;
     virtual uint32_t Deserialize (Buffer::Iterator start); 
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
@@ -43,13 +53,36 @@ public:
     uint8_t GetAreaId() const {return m_areaId;}
     void SetRouterId(RouterId routerId) {m_routerId = routerId;}
     RouterId GetRouterId() const {return m_routerId;}
-    void SetAreaId(uint32_t areaId) {m_areaId = areaId;}
-    uint32_t GetAreaId() const {return m_areaId;}
     void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
     uint16_t GetChecksum() const {return m_checksum;}
     void SetInstanceId(uint8_t instanceId) {m_instanceId = instanceId;}
     uint8_t GetInstanceId() const {return m_instanceId;}
+    bool operator== (const OSPFHeader &other) const {
+
+        // Print(std::cout);
+        // other.Print(std::cout);
+
+        // std::cout << std::boolalpha << "OSPFHeader: "
+        //     << (m_version == other.m_version) << " && "
+        //     << (m_type == other.m_type) << " && "
+        //     << (m_packetLength == other.m_packetLength) << " && "
+        //     << (m_routerId == other.m_routerId) << " && "
+        //     << (m_areaId == other.m_areaId) << " && "
+        //     << (m_checksum == other.m_checksum) << " && "
+        //     << (m_instanceId == other.m_instanceId) << "\n";
+        
+        return (
+            m_version == other.m_version &&
+            m_type == other.m_type &&
+            m_packetLength == other.m_packetLength &&
+            m_routerId == other.m_routerId &&
+            m_areaId == other.m_areaId &&
+            m_checksum == other.m_checksum &&
+            m_instanceId == other.m_instanceId
+        );
+    }
 };
 
+}
 }
 #endif

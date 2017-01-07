@@ -3,47 +3,55 @@
 #include "ns3/header.h"
 #include "ns3/buffer.h"
 
+#include <iostream>
+
 namespace ns3 {
+namespace ospf {
 
 NS_LOG_COMPONENT_DEFINE("OSPFHeader");
 NS_OBJECT_ENSURE_REGISTERED(OSPFHeader);
 
 TypeId OSPFHeader::GetTypeId () {
-    static TypeId tid = TypeId("ns3::OSPFHeader")
-        .SetParent<Tag>()
+    static TypeId tid = TypeId("ns3::ospf::OSPFHeader")
+        .SetParent<Header>()
         .AddConstructor<OSPFHeader>();
     return tid;
 }
 
+TypeId OSPFHeader::GetInstanceTypeId () const {
+    return GetTypeId();
+}
+
 uint32_t OSPFHeader::GetSerializedSize () const {
-    return 16;
+    return 15;
 } 
 void OSPFHeader::Print (std::ostream &os) const {
-    os << "version: " << m_version << "\n";
-    os << "type   : " << m_type << "\n";
+    os << "# OSPFHeader\n";
+    os << "version: " << (int)m_version << "\n";
+    os << "type   : " << (int)m_type << "\n";
     os << "router : " << m_routerId << "\n";
     os << "area   : " << m_areaId << "\n";
+    os << "instanceId   : " << (int)m_instanceId << "\n";
 } 
 void OSPFHeader::Serialize (Buffer::Iterator start) const {
-    start.WriteHtonU8(m_version);
-    start.WriteHtonU8(m_type);
+    start.WriteU8(m_version);
+    start.WriteU8(m_type);
     start.WriteHtonU16(m_packetLength);
     start.WriteHtonU32(m_routerId);
     start.WriteHtonU32(m_areaId);
     start.WriteHtonU16(m_checksum);
-    start.WriteHtonU8(m_instanceId);
-    start.WriteHtonU8(m_padding);
+    start.WriteU8(m_instanceId);
 }
 uint32_t OSPFHeader::Deserialize (Buffer::Iterator start) {
-    m_version = start.ReadNtohU8();
-    m_type = start.ReadNtohU8();
+    m_version = start.ReadU8();
+    m_type = start.ReadU8();
     m_packetLength = start.ReadNtohU16();
     m_routerId = start.ReadNtohU32();
     m_areaId = start.ReadNtohU32();
     m_checksum = start.ReadNtohU16();
-    m_instanceId = start.ReadNtohU8();
-    m_padding = start.ReadNtohU8();
-    return GetSerializedSize ();
+    m_instanceId = start.ReadU8();
+    return OSPFHeader::GetSerializedSize();
 }
 
+} // namespace ns3
 } // namespace ns3

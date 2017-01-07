@@ -20,27 +20,12 @@ NS_LOG_COMPONENT_DEFINE ("Ipv6OspfRouting");
 
 NS_OBJECT_ENSURE_REGISTERED (Ipv6OspfRouting);
 
-const uint32_t Ipv6OspfRouting::PROTO_PORT = 7345;
-
 TypeId Ipv6OspfRouting::GetTypeId ()
 {
-    static TypeId tid = TypeId ("ns3::Ipv6OspfRouting")
+    static TypeId tid = TypeId ("ns3::ospf::Ipv6OspfRouting")
                         .SetParent<Ipv6RoutingProtocol> ()
                         .SetGroupName ("Internet")
-                        .AddConstructor<Ipv6OspfRouting> ()
-                        .AddAttribute (
-                            "HelloInterval", 
-                            "Time interval for sending Hello packet. default is 10s.",
-                               TimeValue (Seconds (10)),
-                               MakeTimeAccessor (&RoutingProtocol::HelloInterval),
-                               MakeTimeChecker ())
-                        .AddAttribute (
-                            "DeadInterval", 
-                            "Time interval for judging Neighbor is dead or not. default is 40s.",
-                               TimeValue (Seconds (40)),
-                               MakeTimeAccessor (&RoutingProtocol::DeadInterval),
-                               MakeTimeChecker ())
-                        ;
+                        .AddConstructor<Ipv6OspfRouting> ();
     return tid;
 }
 
@@ -48,6 +33,7 @@ Ipv6OspfRouting::Ipv6OspfRouting ()
     : m_ipv6 (0)
 {
     NS_LOG_FUNCTION_NOARGS ();
+    ROUTER_ID = ROUTER_ID_SEED++;
 }
 
 Ipv6OspfRouting::~Ipv6OspfRouting ()
@@ -56,7 +42,7 @@ Ipv6OspfRouting::~Ipv6OspfRouting ()
 }
 
 void Ipv6OspfRouting::Start() {
-    for (i = 0; i < m_ipv6->GetNInterfaces (); i++)
+    for (int i = 0, l = m_ipv6->GetNInterfaces (); i < l; i++)
     {
         if (m_ipv6->IsUp (i))
         {
@@ -80,63 +66,63 @@ void Ipv6OspfRouting::SetIpv6 (Ptr<Ipv6> ipv6)
 }
 
 // Formatted like output of "route -n" command
-void Ipv6OspfRouting::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, Time::Unit unit) const
+void Ipv6OspfRouting::PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const
 {
     NS_LOG_FUNCTION (this << stream);
     std::ostream* os = stream->GetStream ();
 
     *os << "Node: " << m_ipv6->GetObject<Node> ()->GetId ()
-        << ", Time: " << Now().As (unit)
-        << ", Local time: " << GetObject<Node> ()->GetLocalTime ().As (unit)
+        << ", Time: " << Now().As (Time::S)
+        << ", Local time: " << GetObject<Node> ()->GetLocalTime ().As (Time::S)
         << ", Ipv6OspfRouting table" << std::endl;
 
-    if (GetNRoutes () > 0)
-    {
-        *os << "Destination                    Next Hop                   Flag Met Ref Use If" << std::endl;
-        for (uint32_t j = 0; j < GetNRoutes (); j++)
-        {
-            std::ostringstream dest, gw, mask, flags;
-            Ipv6RoutingTableEntry route = GetRoute (j);
-            dest << route.GetDest () << "/" << int(route.GetDestNetworkPrefix ().GetPrefixLength ());
-            *os << std::setiosflags (std::ios::left) << std::setw (31) << dest.str ();
-            gw << route.GetGateway ();
-            *os << std::setiosflags (std::ios::left) << std::setw (27) << gw.str ();
-            flags << "U";
-            if (route.IsHost ())
-            {
-                flags << "H";
-            }
-            else if (route.IsGateway ())
-            {
-                flags << "G";
-            }
-            *os << std::setiosflags (std::ios::left) << std::setw (5) << flags.str ();
-            *os << std::setiosflags (std::ios::left) << std::setw (4) << GetMetric (j);
-            // Ref ct not implemented
-            *os << "-" << "   ";
-            // Use not implemented
-            *os << "-" << "   ";
-            if (Names::FindName (m_ipv6->GetNetDevice (route.GetInterface ())) != "")
-            {
-                *os << Names::FindName (m_ipv6->GetNetDevice (route.GetInterface ()));
-            }
-            else
-            {
-                *os << route.GetInterface ();
-            }
-            *os << std::endl;
-        }
-    }
+    // if (GetNRoutes () > 0)
+    // {
+    //     *os << "Destination                    Next Hop                   Flag Met Ref Use If" << std::endl;
+    //     for (uint32_t j = 0; j < GetNRoutes (); j++)
+    //     {
+    //         std::ostringstream dest, gw, mask, flags;
+    //         const Ipv6RoutingTableEntry &route = GetRoute (j);
+    //         dest << route.GetDest () << "/" << int(route.GetDestNetworkPrefix ().GetPrefixLength ());
+    //         *os << std::setiosflags (std::ios::left) << std::setw (31) << dest.str ();
+    //         gw << route.GetGateway ();
+    //         *os << std::setiosflags (std::ios::left) << std::setw (27) << gw.str ();
+    //         flags << "U";
+    //         if (route.IsHost ())
+    //         {
+    //             flags << "H";
+    //         }
+    //         else if (route.IsGateway ())
+    //         {
+    //             flags << "G";
+    //         }
+    //         *os << std::setiosflags (std::ios::left) << std::setw (5) << flags.str ();
+    //         *os << std::setiosflags (std::ios::left) << std::setw (4) << GetMetric (j);
+    //         // Ref ct not implemented
+    //         *os << "-" << "   ";
+    //         // Use not implemented
+    //         *os << "-" << "   ";
+    //         if (Names::FindName (m_ipv6->GetNetDevice (route.GetInterface ())) != "")
+    //         {
+    //             *os << Names::FindName (m_ipv6->GetNetDevice (route.GetInterface ()));
+    //         }
+    //         else
+    //         {
+    //             *os << route.GetInterface ();
+    //         }
+    //         *os << std::endl;
+    //     }
+    // }
     *os << std::endl;
 }
 
-/*
 Ptr<Ipv6Route> Ipv6OspfRouting::RouteOutput (
     Ptr<Packet> p,
     const Ipv6Header &header,
     Ptr<NetDevice> oif,
     Socket::SocketErrno &sockerr) {
 
+    return Ptr<Ipv6Route>();
 }
 
 bool Ipv6OspfRouting::RouteInput (
@@ -147,7 +133,7 @@ bool Ipv6OspfRouting::RouteInput (
     MulticastForwardCallback mcb,
     LocalDeliverCallback lcb,
     ErrorCallback ecb) {
-
+    return false;
 }
 
 void Ipv6OspfRouting::NotifyInterfaceUp (uint32_t interface) {
@@ -171,7 +157,7 @@ void Ipv6OspfRouting::NotifyAddRoute (
     Ipv6Prefix mask,
     Ipv6Address nextHop,
     uint32_t interface,
-    Ipv6Address prefixToUse = Ipv6Address::GetZero ()) {
+    Ipv6Address prefixToUse) {
 
 }
 
@@ -180,108 +166,49 @@ void Ipv6OspfRouting::NotifyRemoveRoute (
     Ipv6Prefix mask,
     Ipv6Address nextHop,
     uint32_t interface,
-    Ipv6Address prefixToUse = Ipv6Address::GetZero ()) {
+    Ipv6Address prefixToUse) {
 
 }
-*/
+
 
 void Ipv6OspfRouting::DoDispose ()
 {
     NS_LOG_FUNCTION_NOARGS ();
 
-    for (NetworkRoutesI j = m_networkRoutes.begin ();  j != m_networkRoutes.end (); j = m_networkRoutes.erase (j))
-    {
-        delete j->first;
-    }
-    m_networkRoutes.clear ();
+    // for (NetworkRoutesI j = m_networkRoutes.begin ();  j != m_networkRoutes.end (); j = m_networkRoutes.erase (j))
+    // {
+    //     delete j->first;
+    // }
+    // m_networkRoutes.clear ();
 
-    for (MulticastRoutesI i = m_multicastRoutes.begin (); i != m_multicastRoutes.end (); i = m_multicastRoutes.erase (i))
-    {
-        delete (*i);
-    }
-    m_multicastRoutes.clear ();
+    // for (MulticastRoutesI i = m_multicastRoutes.begin (); i != m_multicastRoutes.end (); i = m_multicastRoutes.erase (i))
+    // {
+    //     delete (*i);
+    // }
+    // m_multicastRoutes.clear ();
 
     m_ipv6 = 0;
     Ipv6RoutingProtocol::DoDispose ();
 }
 
-uint32_t Ipv6OspfRouting::GetNRoutes () const
-{
-    return m_networkRoutes.size ();
+void Ipv6OspfRouting::HandleProtocolMessage(Ptr<Socket> socket) {
+    NS_LOG_FUNCTION (this);
+
+    uint32_t ifaceIdx = m_socketToIfaceIdx[socket];
+    InterfaceData &data = m_interfaces[ifaceIdx];
+
+    // 1. checksumが正しいか(ignore)
+    // 2. dstAddrが受け取ったIfaceのアドレス、またはマルチキャストのAllSPFRouters, AllDRouters、あるいはグローバルアドレスか
+    // 3. IP Protocolが89になっているか
+    // 4. 自分が送信したパケットでないか
+
+    // - AreaIdが正しいか(ignore)
+    // - AllDRouters宛のとき、受け取ったIfaceがDRまたはBDRか
+    // - AuTypeはそのエリアで有効なものか(ignore)
+    // - パケットが認証されているか(ignore)
 }
 
-
-
-Ipv6RoutingTableEntry Ipv6OspfRouting::GetRoute (uint32_t index) const
-{
-    NS_LOG_FUNCTION (this << index);
-    uint32_t tmp = 0;
-
-    for (NetworkRoutesCI it = m_networkRoutes.begin (); it != m_networkRoutes.end (); it++)
-    {
-        if (tmp == index)
-        {
-            return it->first;
-        }
-        tmp++;
-    }
-    NS_ASSERT (false);
-    // quiet compiler.
-    return 0;
-}
-
-uint32_t Ipv6OspfRouting::GetMetric (uint32_t index) const
-{
-    NS_LOG_FUNCTION_NOARGS ();
-    uint32_t tmp = 0;
-
-    for (NetworkRoutesCI it = m_networkRoutes.begin (); it != m_networkRoutes.end (); it++)
-    {
-        if (tmp == index)
-        {
-            return it->second;
-        }
-        tmp++;
-    }
-    NS_ASSERT (false);
-    // quiet compiler.
-    return 0;
-}
-
-// void Ipv6OspfRouting::RemoveRoute (uint32_t index)
-// {
-//     NS_LOG_FUNCTION (this << index);
-//     uint32_t tmp = 0;
-
-//     for (NetworkRoutesI it = m_networkRoutes.begin (); it != m_networkRoutes.end (); it++)
-//     {
-//         if (tmp == index)
-//         {
-//             delete it->first;
-//             m_networkRoutes.erase (it);
-//             return;
-//         }
-//         tmp++;
-//     }
-//     NS_ASSERT (false);
-// }
-
-// void Ipv6OspfRouting::RemoveRoute (Ipv6Address network, Ipv6Prefix prefix, uint32_t ifIndex, Ipv6Address prefixToUse)
-// {
-//     NS_LOG_FUNCTION (this << network << prefix << ifIndex);
-
-//     for (NetworkRoutesI it = m_networkRoutes.begin (); it != m_networkRoutes.end (); it++)
-//     {
-//         Ipv6RoutingTableEntry* rtentry = it->first;
-//         if (network == rtentry->GetDest () && rtentry->GetInterface () == ifIndex
-//                 && rtentry->GetPrefixToUse () == prefixToUse)
-//         {
-//             delete it->first;
-//             m_networkRoutes.erase (it);
-//             return;
-//         }
-//     }
-// }
+/*
 
 Ptr<Ipv6Route> Ipv6OspfRouting::RouteOutput (
     Ptr<Packet> p,
@@ -423,9 +350,6 @@ void Ipv6OspfRouting::NotifyInterfaceUp (uint32_t i)
     Inet6SocketAddress localAddr = Inet6SocketAddress(ifaceAddr.GetAddress(), PROTO_PORT);
     socket->Bind(localAddr);
     socket->SetProtocol(89); // OSPFv3
-    // socket->SetAllowBroadcast(true);
-    // socket->SetAttribute("IpTtl", UintegerValue(1));
-    // UDPSocketにしか存在しない
     m_socketAddresses.insert(std::make_pair(socket, ifaceAddr));
 }
 
@@ -433,7 +357,7 @@ void Ipv6OspfRouting::NotifyInterfaceDown (uint32_t i)
 {
     NS_LOG_FUNCTION (this << i);
 
-    /* remove all static routes that are going through this interface */
+    // remove all static routes that are going through this interface
     for (NetworkRoutesI it = m_networkRoutes.begin (); it != m_networkRoutes.end (); )
     {
         if (it->first->GetInterface () == i)
@@ -450,6 +374,9 @@ void Ipv6OspfRouting::NotifyInterfaceDown (uint32_t i)
 
 void Ipv6OspfRouting::HandleProtocolMessage(Ptr<Socket> socket) {
     NS_LOG_FUNCTION (this);
+
+    uint32_t ifaceIdx = m_socketToIfaceIdx[socket];
+    InterfaceData &data = m_interfaces[ifaceIdx];
 }
 
 void Ipv6OspfRouting::NotifyAddAddress (uint32_t interface, Ipv6InterfaceAddress address)
@@ -504,16 +431,15 @@ void Ipv6OspfRouting::NotifyAddRoute (Ipv6Address dst, Ipv6Prefix mask, Ipv6Addr
     {
         AddNetworkRouteTo (dst, mask, nextHop, interface);
     }
-    else /* default route */
+    else //default route
     {
-        /* this case is mainly used by configuring default route following RA processing,
-         * in case of multiple prefix in RA, the first will configured default route
-         */
+        // this case is mainly used by configuring default route following RA processing,
+        // in case of multiple prefix in RA, the first will configured default route
 
-        /* for the moment, all default route has the same metric
-         * so according to the longest prefix algorithm,
-         * the default route chosen will be the last added
-         */
+        // for the moment, all default route has the same metric
+        // so according to the longest prefix algorithm,
+        // the default route chosen will be the last added
+ 
         SetDefaultRoute (nextHop, interface, prefixToUse);
     }
 }
@@ -542,10 +468,10 @@ void Ipv6OspfRouting::NotifyRemoveRoute (Ipv6Address dst, Ipv6Prefix mask, Ipv6A
     }
     else
     {
-        /* default route case */
         RemoveRoute (dst, mask, interface, prefixToUse);
     }
 }
+*/
 
 } /* namespace ospf */
 } /* namespace ns3 */

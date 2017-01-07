@@ -2,6 +2,8 @@
 #define OSPF_LSA_HEADER_H
 
 #include "ns3/ipv6-address.h"
+#include "ns3/object.h"
+#include "ns3/buffer.h"
 
 /*
 
@@ -26,8 +28,19 @@
 using namespace ns3;
 
 namespace ns3 {
+namespace ospf {
 
-class OSPFLSAHeader {
+#define OSPF_LSA_TYPE_ROUTER 0x2001
+#define OSPF_LSA_TYPE_NETWORK 0x2002
+#define OSPF_LSA_TYPE_INTER_AREA_PREFIX 0x2003
+#define OSPF_LSA_TYPE_INTER_AREA_ROUTER 0x2004
+#define OSPF_LSA_TYPE_AS_EXTERNAL 0x4005
+// #define OSPF_LSA_TYPE_DEPRECATED 0x2006
+#define OSPF_LSA_TYPE_NSSA 0x2007
+#define OSPF_LSA_TYPE_LINK 0x0008
+#define OSPF_LSA_TYPE_INTRA_AREA_PREFIX 0x2009
+
+class OSPFLSAHeader : public Object {
 protected:
     uint16_t m_age;
     uint16_t m_type;
@@ -54,10 +67,11 @@ public:
 
     static TypeId GetTypeId();
 
-    virtual uint32_t Deserialize (TagBuffer i);
+    virtual TypeId GetInstanceTypeId (void) const;
+    virtual uint32_t Deserialize (Buffer::Iterator &i);
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
-    virtual void Serialize (TagBuffer i) const;
+    virtual void Serialize (Buffer::Iterator &i) const;
 
     virtual void SetAge(uint16_t age) {m_age = age;}
     virtual uint16_t GetAge() {return m_age;}
@@ -73,7 +87,19 @@ public:
     virtual uint16_t GetCheckSum() {return m_checksum;}
     virtual void SetLength(uint16_t length) {m_length = length;}
     virtual uint16_t GetLength() {return m_length;}
+    bool operator== (const OSPFLSAHeader &other) const {
+        return (
+            m_age == other.m_age &&
+            m_type == other.m_type &&
+            m_id == other.m_id &&
+            m_advRtr == other.m_advRtr &&
+            m_seqNum == other.m_seqNum &&
+            m_checksum == other.m_checksum &&
+            m_length == other.m_length
+        );
+    }
 };
 
+}
 }
 #endif

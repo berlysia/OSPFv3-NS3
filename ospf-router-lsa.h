@@ -47,40 +47,53 @@
 using namespace ns3;
 
 namespace ns3 {
+namespace ospf {
 
 class OSPFRouterLSABody : public OSPFLSABody {
 private:
     uint32_t m_options;
-    vector<uint8_t> m_types;
-    vector<uint16_t> m_metrics;
-    vector<uint32_t> m_interfaceIds;
-    vector<uint32_t> m_neighborInterfaceIds;
-    vector<uint32_t> m_neighborRouterIds;
+    std::vector<uint8_t> m_types;
+    std::vector<uint16_t> m_metrics;
+    std::vector<uint32_t> m_interfaceIds;
+    std::vector<uint32_t> m_neighborInterfaceIds;
+    std::vector<uint32_t> m_neighborRouterIds;
 
 public:
-    OSPFRouterLSABody () : OSPFLSABody(0x2001) {};
+    OSPFRouterLSABody () : OSPFLSABody() {};
     ~OSPFRouterLSABody () {};
 
     static TypeId GetTypeId();
 
-    virtual uint32_t Deserialize (TagBuffer i);
+    virtual TypeId GetInstanceId () const;
+    virtual uint32_t Deserialize (Buffer::Iterator &i);
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
-    virtual void Serialize (TagBuffer i) const;
+    virtual void Serialize (Buffer::Iterator &i) const;
 
     virtual uint32_t GetSize() {return m_types.size();}
     virtual void SetOptions(uint32_t opts) {m_options = opts;}
     virtual uint32_t GetOptions() {return m_options;}
     virtual void AddType(uint8_t type) {m_types.push_back(type);}
-    virtual uint8_t GetType(int idx) {return m_types.get(idx);}
+    virtual uint8_t GetType(int idx) {return m_types[idx];}
     virtual void AddInterfaceId(uint32_t id) {m_interfaceIds.push_back(id);}
-    virtual uint32_t GetInterfaceId(int idx) {return m_interfaceIds.get(idx);}
+    virtual uint32_t GetInterfaceId(int idx) {return m_interfaceIds[idx];}
     virtual void AddNeighborInterfaceId(uint32_t id) {m_neighborInterfaceIds.push_back(id);}
-    virtual uint32_t GetNeighborInterfaceId(int idx) {return m_neighborInterfaceIds.get(idx);}
+    virtual uint32_t GetNeighborInterfaceId(int idx) {return m_neighborInterfaceIds[idx];}
     virtual void AddNeighborRouterId(uint32_t id) {m_neighborRouterIds.push_back(id);}
-    virtual uint32_t GetNeighborRouterId(int idx) {return m_neighborRouterIds.get(idx);}
+    virtual uint32_t GetNeighborRouterId(int idx) {return m_neighborRouterIds[idx];}
+    virtual bool operator== (const OSPFRouterLSABody &other) const {
+        return (
+            m_options == other.m_options &&
+            m_types == other.m_types &&
+            m_metrics == other.m_metrics &&
+            m_interfaceIds == other.m_interfaceIds &&
+            m_neighborInterfaceIds == other.m_neighborInterfaceIds &&
+            m_neighborRouterIds == other.m_neighborRouterIds
+        );
+    }
 };
 
+}
 }
 #endif
 
