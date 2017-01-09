@@ -38,10 +38,9 @@ typedef InterfaceStateNS::Type InterfaceState;
     
 struct InterfaceData {
     typedef uint32_t RouterId;
-    uint32_t m_ifaceIdx;
     InterfaceType m_type;
     InterfaceState m_state;
-    uint8_t m_interfaceId;
+    uint32_t m_interfaceId;
     Ipv6Address m_ifaceAddr; // link-local
     Ipv6Prefix m_ifaceMask;
     uint32_t m_areaId;

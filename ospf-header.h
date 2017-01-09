@@ -27,6 +27,7 @@ protected:
     uint32_t m_areaId;
     uint16_t m_checksum;
     uint8_t m_instanceId;
+    uint32_t m_interfaceId;
 
 public:
     OSPFHeader () {
@@ -57,20 +58,9 @@ public:
     uint16_t GetChecksum() const {return m_checksum;}
     void SetInstanceId(uint8_t instanceId) {m_instanceId = instanceId;}
     uint8_t GetInstanceId() const {return m_instanceId;}
+    void SetInterfaceId(uint32_t interfaceId) {m_interfaceId = interfaceId;}
+    uint32_t GetInterfaceId() const {return m_interfaceId;}
     bool operator== (const OSPFHeader &other) const {
-
-        // Print(std::cout);
-        // other.Print(std::cout);
-
-        // std::cout << std::boolalpha << "OSPFHeader: "
-        //     << (m_version == other.m_version) << " && "
-        //     << (m_type == other.m_type) << " && "
-        //     << (m_packetLength == other.m_packetLength) << " && "
-        //     << (m_routerId == other.m_routerId) << " && "
-        //     << (m_areaId == other.m_areaId) << " && "
-        //     << (m_checksum == other.m_checksum) << " && "
-        //     << (m_instanceId == other.m_instanceId) << "\n";
-        
         return (
             m_version == other.m_version &&
             m_type == other.m_type &&
@@ -78,7 +68,8 @@ public:
             m_routerId == other.m_routerId &&
             m_areaId == other.m_areaId &&
             m_checksum == other.m_checksum &&
-            m_instanceId == other.m_instanceId
+            m_instanceId == other.m_instanceId &&
+            m_interfaceId == other.m_interfaceId
         );
     }
 };
