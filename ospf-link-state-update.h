@@ -32,11 +32,14 @@ public:
         return m_lsas.size();
     }
 
-    virtual void SetLSAHeader(OSPFLSA &lsa) {
+    void SetLSA(OSPFLSA &lsa) {
         m_lsas.push_back(lsa);
     }
-    virtual OSPFLSA GetLSAHeader (int index) const {
+    OSPFLSA& GetLSA (int index) const {
         return m_lsas[index];
+    }
+    OSPFLSA& GetLSAs () const {
+        return m_lsas;
     }
     bool operator== (const OSPFLinkStateUpdate &other) const {
         OSPFHeader sup = *this;

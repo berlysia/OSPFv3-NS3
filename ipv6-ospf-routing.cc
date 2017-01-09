@@ -13,6 +13,12 @@
 
 #include "ipv6-ospf-routing.h"
 
+#include "ospf-hello.h"
+#include "ospf-database-description.h"
+#include "ospf-link-state-request.h"
+#include "ospf-link-state-update.h"
+#include "ospf-link-state-ack.h"
+
 namespace ns3 {
 namespace ospf {
 
@@ -33,7 +39,7 @@ Ipv6OspfRouting::Ipv6OspfRouting ()
     : m_ipv6 (0)
 {
     NS_LOG_FUNCTION_NOARGS ();
-    ROUTER_ID = ROUTER_ID_SEED++;
+    m_routerId = ROUTER_ID_SEED++;
 }
 
 Ipv6OspfRouting::~Ipv6OspfRouting ()
@@ -137,7 +143,15 @@ bool Ipv6OspfRouting::RouteInput (
 }
 
 void Ipv6OspfRouting::NotifyInterfaceUp (uint32_t interface) {
+    InterfaceData& ifaceData = m_interfaces[interface];
 
+    ifaceData.SetInterfaceId(interface);
+
+    Timer& waitTimer = ifaceData.GetWaitTimer();
+    waitTimer.SetFunction(&Ipv6OspfRouting::NotifyInterfaceEvent, this);
+    waitTimer.SetArguments(interface, InterfaceEvent::WAIT_TIMER);
+
+    ifaceData.SetHelloSender(MakeCallback(&Ipv6OspfRouting::SendHelloPacket, this));
 }
 
 void Ipv6OspfRouting::NotifyInterfaceDown (uint32_t interface) {
@@ -226,123 +240,239 @@ void Ipv6OspfRouting::HandleProtocolMessage(Ptr<Socket> socket) {
         case OSPF_TYPE_HELLO: 
             return ReceiveHelloPacket(ifaceIdx, srcAddr, packet);
         case OSPF_TYPE_DATABASE_DESCRIPTION: 
-            return ReceiveDatabaseDescriptionPacket(ifaceIdx, srcAddr, packet);
+            return ReceiveDatabaseDescriptionPacket(ifaceIdx, packet);
         case OSPF_TYPE_LINK_STATE_REQUEST:
-            return ReceiveLinkStateRequestPacket(ifaceIdx, srcAddr, packet);
+            return ReceiveLinkStateRequestPacket(ifaceIdx, packet);
         case OSPF_TYPE_LINK_STATE_UPDATE:
-            return ReceiveLinkStateUpdatePacket(ifaceIdx, srcAddr, packet);
+            return ReceiveLinkStateUpdatePacket(ifaceIdx, packet);
         case OSPF_TYPE_LINK_STATE_ACK:
-            return ReceiveLinkStateAckPacket(ifaceIdx, srcAddr, packet);
+            return ReceiveLinkStateAckPacket(ifaceIdx, packet);
         default:
             NS_LOG_WARN("unknown ospf packet type: " << ospfPacketType);
     }
 
 }
 
-void ReceiveHelloPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
+void Ipv6OspfRouting::ReceiveHelloPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
     InterfaceData &ifaceData = m_interfaces[ifaceIdx];
+
     OSPFHello helloPacket;
     packet->RemoveHeader(helloPacket);
 
-    // Helloを送ってきたネイバーステートマシンにHelloReceived発行
     RouterId neighborRouterId = helloPacket.GetRouterId();
-    NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::HELLORECEIVED);
+
+    NeighborData &neighData = ifaceData.GetNeighbor(neighborRouterId);
+    if (!neighData.IsInitialized()) {
+        neighData.MinimalInitialize(srcAddr, helloPacket);
+    }
+
+    // Helloを送ってきたネイバーステートマシンにHelloReceived発行
+    NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::HELLO_RECEIVED);
+
 
     // ネイバーリストに送信者ネイバーがいるならネイバーステートマシンに2-WayReceived発行
     // そうでなければネイバーステートマシンに1-WayReceived発行
     if (ifaceData.IsKnownNeighbor(neighborRouterId)) {
-        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::TWOWAYRECEIVED);
+        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::TWOWAY_RECEIVED);
     } else {
-        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::ONEWAYRECEIVED);
+        neighData.Initialize(srcAddr, helloPacket);
+        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::ONEWAY_RECEIVED);
+        return;
     }
 
+    bool flagNeighChange = false, flagBackupSeen = false;
+
     // router priority値が過去のものと異なればインターフェースステートマシンにNeighborChange発行
-    if (IsChangedNeighborRouterPriority())
+    if (helloPacket.GetRouterPriority() != neighData.GetRouterPriority()) {
+        NotifyInterfaceEvent(ifaceIdx, InterfaceEvent::NEIGH_CHANGE);
+    }
 
     // HelloパケットのDRフィールドにネイバー自身が、BDRが0.0.0.0で、かつ受け取ったインターフェースがWaitingのとき
-    // インターフェースステートマシンはBackupSeenイベントを発行する
+    // インターフェースステートマシンはBackupSeenイベントを非同期で発行する
     // そうでなく、ネイバーがそれまで自身をDRに指定していないか、DRの指定が今までなかった場合、
-    // インターフェースステートマシンはNeighborChagneイベントを発行する
+    // インターフェースステートマシンはNeighborChangeイベントを非同期で発行する
+    if (helloPacket.GetDesignatedRouter() == neighborRouterId) {
+        if (
+            helloPacket.GetBackupDesignatedRouter() == 0 &&
+            ifaceData.IsState(InterfaceState::WAITING)
+        ) {
+            flagBackupSeen = true;
+        } else if (
+            neighData.GetDesignatedRouter() != neighborRouterId ||
+            neighData.GetDesignatedRouter() == 0
+        ) {
+            flagNeighChange = true;
+        }
+    }
 
     // HelloパケットのBDRフィールドにネイバー自身が指定されていて、かつ受け取ったインターフェースがWaitingのとき
-    // インターフェースステートマシンはBackupSeenイベントを発行する
+    // インターフェースステートマシンはBackupSeenイベントを非同期で発行する
     // そうでなく、ネイバーがそれまで自身をBDRに指定していないか、BDRの指定が今までなかった場合、
-    // インターフェースステートマシンはNeighborChangeイベントを発行する
+    // インターフェースステートマシンはNeighborChangeイベントを非同期で発行する
+    if (helloPacket.GetBackupDesignatedRouter() == neighborRouterId) {
+        if (ifaceData.IsState(InterfaceState::WAITING)) {
+            flagBackupSeen = true;
+        } else if (
+            neighData.GetBackupDesignatedRouter() != neighborRouterId ||
+            neighData.GetBackupDesignatedRouter() == 0
+        ) {
+            flagNeighChange = true;
+        }
+    }
+
+    neighData.Initialize(srcAddr, helloPacket);
+
+    // TODO: ちゃんと非同期実行にする
+    // 結局中身が未実装なので不具合があるかどうかが不明
+    if (flagBackupSeen) {
+        NotifyInterfaceEvent(ifaceIdx, InterfaceEvent::BACKUP_SEEN);
+    }
+    if (flagNeighChange) {
+        NotifyInterfaceEvent(ifaceIdx, InterfaceEvent::NEIGH_CHANGE);
+    }
 }
 
-void ReceiveDatabaseDescriptionPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
+void Ipv6OspfRouting::ReceiveDatabaseDescriptionPacket(uint32_t ifaceIdx, Ptr<Packet> packet) {
+    InterfaceData &ifaceData = m_interfaces[ifaceIdx];
+
+    OSPFDatabaseDescription ddPacket;
+    packet->RemoveHeader(ddPacket);
+
+    RouterId neighborRouterId = ddPacket.GetRouterId();
+    NeighborData &neighData = ifaceData.GetNeighbor(neighborRouterId);
+
     // lastReceivedDdPacketに保存する。このときLSAHeader部は不要
+    neighData.SetLastReceivedDD(ddPacket);
 
     // InterfaceMTUがこのルータの受け取り可能サイズを超えている場合、断片化しているのでreject
+    if (ddPacket.GetMtu() > m_ipv6->GetMtu(ifaceIdx)) {
+        return;
+    }
+
+    switch (neighData.GetState()) {
+    case NeighborState::DOWN:
+    case NeighborState::ATTEMPT:
+    case NeighborState::TWOWAY:
+        return;
+
+    case NeighborState::INIT: {
+        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::TWOWAY_RECEIVED);
+        if (!neighData.IsState(NeighborState::EXSTART)) {
+            return;
+        }
+        // fall through
+    }
+    case NeighborState::EXSTART: {
+        if (ddPacket.IsNegotiation() && m_routerId < neighborRouterId) {
+            neighData.SetAsSlave();
+            neighData.SetSequenceNumber(ddPacket.GetSequenceNumber());
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::NEGOT_DONE);
+        } else if (
+            !(ddPacket.GetInitFlag() || ddPacket.GetMasterFlag()) &&
+            ddPacket.GetSequenceNumber () == neighData.GetSequenceNumber() &&
+            m_routerId > neighborRouterId
+        ) {
+            neighData.SetAsMaster();
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::NEGOT_DONE);
+        }
+        return;
+    }
+    case NeighborState::EXCHANGE: {
+        OSPFDatabaseDescription& lastPacket = neighData.GetLastPacket();
+        if (
+            ddPacket.GetMasterFlag() != lastPacket.GetMasterFlag() ||
+            ddPacket.GetInitFlag() ||
+            ddPacket.GetOptions() != lastPacket.GetOptions() || (
+                neighData.IsMaster() &&
+                ddPacket.GetSequenceNumber() == neighData.GetSequenceNumber()
+            ) || (
+                neighData.IsSlave() &&
+                ddPacket.GetSequenceNumber() > neighData.GetSequenceNumber()
+            )
+        ) {
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::SEQ_NUM_MISMATCH);
+            return;
+        }
+        break; // accepted
+    }
+    case NeighborState::LOADING:
+    case NeighborState::FULL: {
+        OSPFDatabaseDescription& lastPacket = neighData.GetLastPacket();
+        if (ddPacket.GetOptions() != lastPacket.GetOptions()) {
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::SEQ_NUM_MISMATCH);
+            return;
+        }
+    }
+    default: {}
+    } // switch
+
+    // accepted
 
     /*
-    # Down
-    reject
-
-    # Attempt
-    reject
-
-    # Init
-    2-WayReceivedを発行、ExStartになった場合は処理を続行する
-
-    # 2-Way
-    ignore（何が違うのかわからん）
-
-    # ExStart
-    パケットが次の条件を満たすときNegotiationDoneを発行し、
-    Optionフィールドをネイバーデータ構造のNeighbor Optionsに保存して、
-    次に示す条件を満たした場合はaccepded。そうでなければignored
-    - I, M, MSがtrueで、LSAHeaderの添付がなく、ネイバーのルータIDが自分のルータIDより大きいとき
-        - このルータはSlaveとなり、対応するネイバーのddSeqNumを受け取った値にセットする
-    - I, MSがfalseで、パケットのddSeqNumがネイバーデータ構造のものと等しく、自分のルータIDがネイバーより小さいとき
-        - このルータはMasterとなる
-
-    # ExChange
-    重複したDDパケットはMasterによって破棄され、SlaveにlastDdPacketの再送を促す？
-    そうでないとき、
-    - MS-bitの一貫性が崩れたとき、SeqNumberMismatchを発行して処理をやめる
-    - I-bitがtrueとなったとき、SeqNumberMismatchを発行して処理をやめる
-    - パケットのOptionsフィールドがネイバーデータ構造にあるものと変化した場合、SeqNumberMismatchを発行して処理をやめる
-    - DDパケットはddSeqNumに示される順序で処理されなければならない。
-        - もしルータがMasterであるなら、受け取ったパケットのddSeqNumはネイバーデータ構造のものと等しいはず。
-        - ルータがSlaveであるなら、受け取ったパケットのddSeqNumはネイバーデータ構造のものより大きいはず。
-        - どちらかを満たすならacceptedで、のちに指定する処理を続ける。
-    - 満たされていなければSeqNumMismatchを発行して処理をやめる。
-
-    # Loading or Full
-    この段階で受け取るとしたら重複しているはず。
-    パケットのOptionsフィールドがネイバーデータ構造のものと一致していればよい。
-    そうでなければ、I-bitがtrueであったとしてもSeqNumberMismatchを発行せよ。
-    重複はMasterにより破棄される。SlaveはlastDDPacketを送り続けなければならない。
-
-    ルータがDDパケットをacceptしたら、次の処理を行う。
-    各LSAHeaderごとにvalidationを行う。
     もしlsTypeが未知またはAS-external-LSA(LS type = 5)でかつ相手がstub areaに属するネイバーなら、SeqNumMismatchを発行して処理をやめる。
-    そうでなければLSAリストの中を受け取ったLSAHeaerのinstanceがあるか検索する。
-    リストにないか、より受け取ったものより古い場合は、LSAHeaderはlinkStateRequestListに追加される。これはあとでLSRで送る。
-
-    DDパケットをacceptしたら、Master/Slaveごとに行う処理がある。
-    # Master
-    ネイバーデータ構造のddSeqNumをincrementする。
-    もしルータが必要な分のDDパケットを送りきって、M-bitをfalseにしたパケットのackが来ているなら、ExchangeDoneを発行する。
-    さもなくば続きを送る。
-
-    # Slave
-    ネイバーデータ構造のddSeqNumを受け取ったパケットにある値で上書きする。
-    SlaveはDDパケットに返事を送らなければならない。
-    受け取ったパケットのM-bitがfalseであれば、送り返すパケットのM-bitもfalseにし、ExchangeDoneを発行する。
-    このイベントはSlaveがMasterより先に発行することになるというわけだ。
     */
+    // TODO: LS Typeの確認
+    OSPFLinkStateIdentifier identifier;
+    for (const OSPFLSAHeader& lsaHeader : ddPacket.GetLSAHeaders()) {
+        identifier = lsaHeader.CreateIdentifier();
+        if (m_lsdb.count(identifier)) {
+            OSPFLSA &storedLsa = m_lsdb[identifier];
+            if (lsaHeader.IsNewerThan(*storedLsa.GetHeader())) {
+                neighData.AddLinkStateRequestList(lsaHeader);
+            }
+        } else {
+            neighData.AddLinkStateRequestList(lsaHeader);
+        }
+    }
+
+    if (neighData.IsMaster()) {
+        neighData.IncrementSequenceNumber();
+        if (neighData.IsExchangeDone() && !ddPacket.GetMoreFlag()) {
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::EXCHANGE_DONE);
+        } else {
+            // SendDatabaseDescriptionPacket
+        }
+    } else { // Slave
+        neighData.SetSequenceNumber(ddPacket.GetSequenceNumber());
+        // SendDatabaseDescriptionPacket
+        NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::EXCHANGE_DONE);
+    }
     
 }
 
-void ReceiveLinkStateRequestPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
+void Ipv6OspfRouting::ReceiveLinkStateRequestPacket(uint32_t ifaceIdx, Ptr<Packet> packet) {
+    InterfaceData &ifaceData = m_interfaces[ifaceIdx];
+
+    OSPFLinkStateRequest lsrPacket;
+    packet->RemoveHeader(lsrPacket);
+
+    RouterId neighborRouterId = lsrPacket.GetRouterId();
+    NeighborData &neighData = ifaceData.GetNeighbor(neighborRouterId);
     /*
     ネイバーがExchange, Loading, Fullのときaccepted、それ以外はignored
     このパケットで指定されたLSAはルータのデータベースにあるはず。LSUにコピーしてネイバーに送る。
     linkStateRxmtListに入れてはいけない。
     もしLSAがDBに見つからなかったり、何か失敗したら、BadLSReqを発行する。
     */
+
+    if (!(
+        neighData.GetState(NeighborState::EXCHANGE) ||
+        neighData.GetState(NeighborState::LOADING) ||
+        neighData.GetState(NeighborState::FULL)
+    )) {
+        return;
+    }
+
+    std::vector<OSPFLSA> lsas;
+    for (const OSPFLinkStateIdentifier& identifier : lsrPacket.GetLinkStateIdentifiers()) {
+        if (m_lsdb.count(identifier)) {
+            lsas.push_back(m_lsdb[identifier]);
+        } else {
+            NotifyNeighborEvent(ifaceIdx, neighborRouterId, NeighborEvent::BAD_LS_REQ);
+            return;
+        }
+    }
+    SendLinkStateUpdatePacket(ifaceIdx, lsas, neighborRouterId);
 }
 
 void ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
@@ -373,7 +503,14 @@ void ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Pa
     */
 }
 
-void ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet) {
+void Ipv6OspfRouting::ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ptr<Packet> packet) {
+    InterfaceData &ifaceData = m_interfaces[ifaceIdx];
+
+    OSPFLinkStateAck lsaPacket;
+    packet->RemoveHeader(lsaPacket);
+
+    RouterId neighborRouterId = lsaPacket.GetRouterId();
+    NeighborData &neighData = ifaceData.GetNeighbor(neighborRouterId);
     /*
     細かい送信条件はFlooding Procedureを参照
     ネイバーがExchange未満の状態なら破棄する。
@@ -382,8 +519,251 @@ void ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packe
         - 同じinstanceならrxmtListから削除して次へ
         - そうでなければ、ログに残して次へ
     */
+    if (neighData.GetState() < NeighborState::EXCHANGE) {
+        return;
+    }
+    
+    std::vector<OSPFLSAHeader>& rxmtList = neighData.GetRxmtList();
+    std::vector<OSPFLSAHeader>& lsaList = lsaPacket.GetLSAHeaders();
+    for (
+        auto it = rxmtList.begin();
+        it != rxmtList.end();
+        // nop
+    ) {
+        int i = 0;
+        for (int l = lsaList.size(); i < l; ++i) {
+            if (lsaList[i].IsSameIdentity(*it)) {
+                break;
+            }
+        }
+        if (i != l) {
+            if (lsaList[i].IsSameInstance(*it)) {
+                it = rxmtList.erase(it)
+            } else {
+                NS_LOG_WARN("BAD ACK");
+            }
+        } else {
+            ++it;
+        }
+    }
 }
 
+bool Ipv6OspfRouting::IsNeighborToBeAdjacent(uint32_t ifaceIdx, RouterId neighborRouterId) {
+    InterfaceData &ifaceData = m_interfaces[ifaceIdx];
+    InterfaceType ifaceType = ifaceData.GetType();
+
+    // OSPFv2 10.4.  Whether to become adjacent
+    // https://tools.ietf.org/html/rfc2328#page-96
+    return (
+        ifaceType     == InterfaceType::P2P ||
+        ifaceType     == InterfaceType::P2M ||
+        ifaceType     == InterfaceType::VIRTUAL ||
+        m_routerId    == ifaceData.GetDesignatedRouter() ||
+        m_routerId    == ifaceData.GetBackupDesignatedRouter() ||
+        neighborRouterId  == ifaceData.GetDesignatedRouter() ||
+        neighborRouterId  == ifaceData.GetBackupDesignatedRouter()
+    );
+}
+
+void Ipv6OspfRouting::NotifyInterfaceEvent(uint32_t ifaceIdx, InterfaceEvent event) {
+    InterfaceData &interface = m_interfaces[ifaceIdx];
+
+    // OSPFv2 10.3 The Interface state machine
+    // https://tools.ietf.org/html/rfc2328#page-72
+    switch (event) {
+    case InterfaceEvent::IF_UP: {
+        if (interface.IsState(InterfaceState::DOWN)) {
+            // TODO: Helloのタイマーを起動
+
+            if (
+                interface.IsType(InterfaceType::P2P) ||    
+                interface.IsType(InterfaceType::P2M) ||    
+                interface.IsType(InterfaceType::VIRTUAL)    
+            ) {
+                interface.SetState(InterfaceState::P2P);
+                return;
+            }
+
+            if (interface.IsEligibleToDR()) {
+                if (
+                    interface.IsType(InterfaceType::BROADCAST) ||
+                    interface.IsType(InterfaceType::NBMA)
+                ) {
+                    interface.SetState(InterfaceState::WAITING);
+                    interface.StartWaitTimer();
+                }
+            } else {
+                interface.SetState(InterfaceState::DR_OTHER);
+                return;
+            }
+
+
+            if (interface.IsType(InterfaceType::NBMA)) {
+                NS_LOG_ERROR("NBMA connection is not supported");
+                // このインターフェースの設定済みネイバーリストを検査(NBMAが未実装なのでこの状態にする)
+                // 各ネイバーにStartイベントを発行
+                return;
+            }
+        }
+        return;
+    }
+    case InterfaceEvent::BACKUP_SEEN: // fall through
+    case InterfaceEvent::WAIT_TIMER: {
+        if (interface.IsState(InterfaceState::WAITING)) {
+            interface.CalcDesignatedRouter();
+        }
+        return;
+    }
+    case InterfaceEvent::NEIGH_CHANGE: {
+        if (
+            interface.IsState(InterfaceState::DR_OTHER) ||
+            interface.IsState(InterfaceState::DR) ||
+            interface.IsState(InterfaceState::BACKUP)
+        ) {
+            interface.CalcDesignatedRouter();
+        }
+        return;
+    }
+    case InterfaceEvent::IF_DOWN: {
+        interface.SetState(InterfaceState::DOWN);
+        interface.ResetInstance();
+        for (auto& kv : interface.GetNeighbors()) {
+            NotifyNeighborEvent(ifaceIdx, kv.first, NeighborEvent::KILL_NBR);
+        }
+        return;
+    }
+    case InterfaceEvent::LOOP_IND: {
+        interface.SetState(InterfaceState::LOOPBACK);
+        interface.ResetInstance();
+        for (auto& kv : interface.GetNeighbors()) {
+            NotifyNeighborEvent(ifaceIdx, kv.first, NeighborEvent::KILL_NBR);
+        }
+        return;
+    }
+    case InterfaceEvent::UNLOOP_IND: {
+        if (interface.IsState(InterfaceState::LOOPBACK)) {
+            interface.SetState(InterfaceState::DOWN);
+        }
+        return;
+    }
+    } // switch
+}
+
+void Ipv6OspfRouting::NotifyNeighborEvent(uint32_t ifaceIdx, RouterId neighborRouterId, NeighborEvent event) {
+    InterfaceData &interface = m_interfaces[ifaceIdx];
+    NeighborData &neighbor = interface.GetNeighbor(neighborRouterId);
+
+    // OSPFv2 10.3 The Neighbor state machine
+    // https://tools.ietf.org/html/rfc2328#page-89
+    switch (event) {
+    case NeighborEvent::START: {
+        if (neighbor.IsState(NeighborState::DOWN)) {
+            neighbor.SetState(NeighborState::ATTEMPT);
+            // SendHello();
+            // neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyNeighborEvent, this);
+            // neighbor.SetInactivityTimerArguments(neighborRouterId, NeighborEvent::INACTIVE);
+            // neighbor.ResetInactivityTimer(m_routerDeadInterval);
+        }
+        return;
+    }
+    case NeighborEvent::HELLO_RECEIVED: {
+        if (neighbor.IsState(NeighborState::DOWN) ||
+            neighbor.IsState(NeighborState::ATTEMPT))
+        {
+            neighbor.SetState(NeighborState::INIT);
+        }
+        // neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyNeighborEvent, this);
+        // neighbor.SetInactivityTimerArguments(neighborRouterId, NeighborEvent::INACTIVE);
+        // neighbor.ResetInactivityTimer(m_routerDeadInterval);
+        return;
+    }
+    case NeighborEvent::TWOWAY_RECEIVED: {
+        if (neighbor.IsState(NeighborState::INIT)) {
+            if (IsNeighborToBeAdjacent(ifaceIdx, neighborRouterId)) {
+                neighbor.SetState(NeighborState::EXSTART);
+                neighbor.StartExchange();
+                // SendDatabaseDescription(neighborRouterId);
+            } else {
+                neighbor.SetState(NeighborState::TWOWAY);
+            }
+        }
+        return;
+    }
+    case NeighborEvent::NEGOT_DONE: {
+        if (neighbor.IsState(NeighborState::EXSTART)) {
+            neighbor.SetState(NeighborState::EXCHANGE);
+            // DDによるやりとりがはじまる (OSPFv2の10.8と10.6を参照)
+            // lsdbSummaryListに突っ込んだりする
+            // SendDatabaseDescription(neighborRouterId);
+        }
+        return;
+    }
+    case NeighborEvent::EXCHANGE_DONE: {
+        if (neighbor.IsState(NeighborState::EXCHANGE)) {
+            if (neighbor.IsRequestListEmpty()) {
+                neighbor.SetState(NeighborState::FULL);
+            } else {
+                neighbor.SetState(NeighborState::LOADING);
+                // SendLinkStateRequest(neighborRouterId);
+            }
+        }
+        return;
+    }
+    case NeighborEvent::LOADING_DONE: {
+        if (neighbor.IsState(NeighborState::LOADING)) {
+            neighbor.SetState(NeighborState::FULL);
+        }
+        return;
+    }
+    case NeighborEvent::IS_ADJ_OK: {
+        if (neighbor.IsState(NeighborState::TWOWAY)) {
+            if (IsNeighborToBeAdjacent(ifaceIdx, neighborRouterId)) {
+                neighbor.SetState(NeighborState::EXSTART);
+                neighbor.StartExchange();
+                // SendDatabaseDescription(neighborRouterId);
+            }
+            return;
+        }
+        if (neighbor.GetState() >= NeighborState::EXSTART) {
+            if (!IsNeighborToBeAdjacent(ifaceIdx, neighborRouterId)) {
+                neighbor.SetState(NeighborState::TWOWAY);
+                neighbor.ClearList();
+            }
+        }
+        return;
+    }
+    case NeighborEvent::BAD_LS_REQ: // fall through
+    case NeighborEvent::SEQ_NUM_MISMATCH: {
+        if (neighbor.GetState() >= NeighborState::EXCHANGE) {
+            neighbor.SetState(NeighborState::EXSTART);
+            neighbor.ClearList();
+            neighbor.StartExchange();
+            // SendDatabaseDescription(neighborRouterId);
+        }
+        return;
+    }
+    case NeighborEvent::KILL_NBR: // fall through
+    case NeighborEvent::LL_DOWN: // fall through
+    case NeighborEvent::INACTIVE: {
+        neighbor.SetState(NeighborState::DOWN);
+        neighbor.ClearList();
+        return;
+    }
+    case NeighborEvent::ONEWAY_RECEIVED: {
+        if (neighbor.GetState() >= NeighborState::TWOWAY) {
+            neighbor.SetState(NeighborState::INIT);
+            neighbor.ClearList();
+        }
+        return;
+    }
+    } // switch
+}
+
+void Ipv6OspfRouting::SendHelloPacket(uint32_t ifaceIdx, RouterId neighborRouterId) {}
+void Ipv6OspfRouting::SendDatabaseDescriptionPacket(uint32_t ifaceIdx, RouterId neighborRouterId) {}
+void Ipv6OspfRouting::SendLinkStateRequestPacket(uint32_t ifaceIdx, RouterId neighborRouterId) {}
+void Ipv6OspfRouting::SendLinkStateUpdatePacket(uint32_t ifaceIdx, std::vector<OSPFLSA> lsas, RouterId neighborRouterId) {}
+void Ipv6OspfRouting::SendLinkStateAckPacket(uint32_t ifaceIdx, RouterId neighborRouterId) {}
 
 /*
 

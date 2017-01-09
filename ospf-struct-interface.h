@@ -13,30 +13,42 @@ namespace ospf {
 
 namespace InterfaceTypeNS {
 enum Type {
-    P2P = 1,
-    BROADCAST = 2,
-    NBMA = 3,
-    P2M = 4,
-    VIRTUAL = 5,
+    P2P,
+    BROADCAST,
+    NBMA,
+    P2M,
+    VIRTUAL,
 };
 }
+typedef InterfaceTypeNS::Type InterfaceType;
 
 namespace InterfaceStateNS {
 enum Type {
-    DOWN = 1,
-    P2P = 2,
-    LOOPBACK = 3,
-    WAITING = 4,
-    DROTHER = 5,
-    BACKUP = 6,
-    DR = 7,
+    DOWN,
+    P2P,
+    LOOPBACK,
+    WAITING,
+    DR_OTHER,
+    BACKUP,
+    DR,
 };
 }
-
-typedef InterfaceTypeNS::Type InterfaceType;
 typedef InterfaceStateNS::Type InterfaceState;
+
+namespace InterfaceEventNS {
+enum Type {
+    IF_UP,
+    WAIT_TIMER,
+    BACKUP_SEEN,
+    NEIGH_CHANGE,
+    LOOP_IND,
+    UNLOOP_IND,
+    IF_DOWN,
+};
+}
+typedef InterfaceEventNS::Type InterfaceEvent;
     
-struct InterfaceData {
+class InterfaceData {
     typedef uint32_t RouterId;
     InterfaceType m_type;
     InterfaceState m_state;
@@ -61,32 +73,98 @@ struct InterfaceData {
     std::map<RouterId, Ipv6Address> m_prefixAddrs;
     std::map<RouterId, uint8_t> m_prefixLengthes;
 
-    Callback<void> m_sendHelloCallback;
-    Callback<void, RouterId> m_sendDDCallback;
-    Callback<void, RouterId> m_sendLSRCallback;
-    Callback<void, RouterId> m_rxmtCallback;
-    Timer m_rxmtTimer;
+public:
+    InterfaceData () {
+        m_state = InterfaceState::DOWN;
+        m_areaId = 0;
+        m_helloInterval = Seconds(10.0);
+        m_routerDeadInterval = Seconds(10.0);
+        m_ifaceTransDelay = 1;
+        m_designatedRouterId = 0;
+        m_backupDesignatedRouterId = 0;
+        m_ifaceOutputCost = 1;
+        m_rxmtInterval = Seconds(5.0);
+        m_auType = 0;
+        m_waitTimer.SetDelay(m_routerDeadInterval);
+    }
 
-    InterfaceData ();
-    bool IsKnownNeighbor(RouterId id) const {return (bool)m_neighbors.count(id);}
-    void SetInterfaceIndex(uint32_t ifaceIdx) {m_ifaceIdx = ifaceIdx;}
-    void SetHelloSender(Callback<void> &cb) {m_sendHelloCallback = cb;}
-    void SetDDSender(Callback<void, RouterId> &cb) {m_sendDDCallback = cb;}
-    void SetLSRSender(Callback<void, RouterId> &cb) {m_sendLSRCallback = cb;}
-    bool ShouleBeAdjacent(RouterId routerId, NeighborData &neighbor);
-    void NotifyEvent(InterfaceEvent event);
-    void NotifyNeighborEvent(RouterId routerId, RouterId neighborRouterId, NeighborEvent event);
-    /** lsRxmtListに入っているLSAHeaderを抜き出し、DDPacketを送信します */
-    void SendDatabaseDescription(RouterId routerId);
-    /** lsRequestListに入っているLSAHeaderを抜き出し、LSRPacketを送信します */
-    void SendLinkStateRequest(RouterId routerId);
-    void SendHello();
-    void ScheduleSendDatabaseDescription(RouterId routerId);
-    void ScheduleSendLinkStateRequest(RouterId routerId);
-    void ScheduleSendHello();
-    void RxmtWrapper(RouterId routerId);
-    void HelloWrapper();
-    void CancelRxmt ();
+    void ResetInstance () {
+        m_areaId = 0;
+        m_helloInterval = Seconds(10.0);
+        m_routerDeadInterval = Seconds(10.0);
+        m_ifaceTransDelay = 1;
+        m_designatedRouterId = 0;
+        m_backupDesignatedRouterId = 0;
+        m_ifaceOutputCost = 1;
+        m_rxmtInterval = Seconds(5.0);
+        m_auType = 0;
+        m_helloTimer.Cancel();
+        m_waitTimer.Cancel();
+    }
+
+    void SetType(InterfaceType type) {
+        m_type = type;
+    }
+    bool IsType(InterfaceType type) {
+        return m_type == type;
+    }
+
+    void SetState(InterfaceState state) {
+        m_state = state;
+    }
+    bool IsState(InterfaceState state) {
+        return m_state == state;
+    }
+
+    uint8_t GetRouterPriority () {
+        return m_routerPriority;
+    }
+
+    bool IsEligibleToDR () {
+        return m_routerPriority > 0;
+    }
+
+    void SetInterfaceId(uint32_t ifaceId) {
+        m_interfaceId = ifaceId;
+    }
+    NeighborData& GetNeighbor(RouterId routerId) {
+        return m_neighbors[routerId];
+    }
+    std::map<RouterId, NeighborData>& GetNeighbors() {
+        return m_neighbors;
+    }
+    bool IsKnownNeighbor(RouterId id) const {
+        return (bool)m_neighbors.count(id);
+    }
+    InterfaceType GetType() {
+        return m_type;
+    }
+
+    RouterId GetDesignatedRouter() {
+        return m_designatedRouterId;
+    }
+
+    RouterId GetBackupDesignatedRouter() {
+        return m_backupDesignatedRouterId;
+    }
+
+    Timer& GetWaitTimer () {
+        return m_waitTimer;
+    }
+
+    void StartWaitTimer () {
+        m_waitTimer.Schedule();
+    }
+
+    void SetHelloSender(Callback<void, uint32_t, RouterId> cb) {}
+
+    void CalcDesignatedRouter() {
+        // OSPFv2 9.4 Electiong the Designated Router
+        // https://tools.ietf.org/html/rfc2328#page-75
+
+        // XXX: 今の所いらないので使うときに書いてください
+        // 結果によってDR, BDR, DR_OTHERをSetStateして抜けてください
+    }
 };
 
 }

@@ -4,6 +4,9 @@
 #include "ns3/ipv6-address.h"
 #include "ns3/object.h"
 #include "ns3/buffer.h"
+#include "ospf-lsa-identifier.h"
+#include "ospf-constants.h"
+#include <cstdlib>
 
 /*
 
@@ -46,7 +49,7 @@ protected:
     uint16_t m_type;
     uint32_t m_id;
     uint32_t m_advRtr;
-    uint32_t m_seqNum;
+    int32_t m_seqNum;
     uint16_t m_checksum;
     uint16_t m_length;
     /*
@@ -81,12 +84,15 @@ public:
     virtual uint32_t GetId() {return m_id;}
     virtual void SetAdvertisingRouter(uint32_t advRtr) {m_advRtr = advRtr;}
     virtual uint32_t GetAdvertisingRouter() {return m_advRtr;}
-    virtual void SetSequenceNumber(uint32_t seqNum) {m_seqNum = seqNum;}
-    virtual uint32_t GetSequenceNumber() {return m_seqNum;}
+    virtual void SetSequenceNumber(int32_t seqNum) {m_seqNum = seqNum;}
+    virtual int32_t GetSequenceNumber() {return m_seqNum;}
     virtual void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
     virtual uint16_t GetCheckSum() {return m_checksum;}
     virtual void SetLength(uint16_t length) {m_length = length;}
     virtual uint16_t GetLength() {return m_length;}
+    OSPFLinkStateIdentifier CreateIdentifier () const {
+        return OSPFLinkStateIdentifier(m_type, m_id, m_advRtr);
+    }
     bool operator== (const OSPFLSAHeader &other) const {
         return (
             m_age == other.m_age &&
@@ -96,6 +102,37 @@ public:
             m_seqNum == other.m_seqNum &&
             m_checksum == other.m_checksum &&
             m_length == other.m_length
+        );
+    }
+    bool IsNewerThan (const OSPFLSAHeader &other) const {
+        if (m_seqNum > other.m_seqNum) return true;
+        if (m_seqNum < other.m_seqNum) return false;
+        if (m_checksum > other.m_checksum) return true;
+        if (m_checksum < other.m_checksum) return false;
+        if (m_age == g_maxAge) return true;
+        if (other.m_age == g_maxAge) return false;
+        if (abs(m_age - other.m_age) > g_maxAgeDiff) {
+            if (m_age < other.m_age) return true;
+            if (m_age > other.m_age) return false;
+        }
+        return false;
+    }
+
+    bool IsSameIdentity (const OSPFLSAHeader &other) const {
+        return (
+            m_type == other.m_type &&
+            m_id == other.m_id &&
+            m_advRtr == other.m_advRtr
+        );
+    }
+
+    bool IsSameInstance (const OSPFLSAHeader &other) const {
+        return (
+            m_seqNum == other.m_seqNum &&
+            m_checksum == other.m_checksum &&
+            m_age == other.m_age &&
+            m_age != g_maxAge &&
+            other.m_age != g_maxAge
         );
     }
 };

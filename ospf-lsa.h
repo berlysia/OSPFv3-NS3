@@ -50,6 +50,10 @@ public:
         }
     }
 
+    OSPFLinkStateIdentifier GetIdentifier () {
+        return GetHeader()->CreateIdentifier();
+    }
+
     Ptr<OSPFLSAHeader> GetHeader () {return m_header;}
     Ptr<OSPFLSABody> GetBody () {return m_body;}
     virtual bool operator== (const OSPFLSA &other) const {

@@ -49,6 +49,9 @@ public:
     uint32_t GetSequenceNumber() const {return m_ddSeqNum;}
     void SetLSAHeaders(std::vector<OSPFLSAHeader> headers) {m_lsaHeaders = headers;}
     std::vector<OSPFLSAHeader>& GetLSAHeaders() {return m_lsaHeaders;}
+    bool IsNegotiation () {
+        return m_initFlag && m_moreFlag && m_masterFlag && m_lsaHeaders.size() == 0;
+    }
     bool operator== (const OSPFDatabaseDescription &other) const {
         OSPFHeader sup = *this;
         OSPFHeader oth = other;
