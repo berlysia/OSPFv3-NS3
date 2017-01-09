@@ -69,13 +69,14 @@ struct InterfaceData {
     Timer m_rxmtTimer;
 
     InterfaceData ();
-    void UpdateState(InterfaceState s);
+    bool IsKnownNeighbor(RouterId id) const {return (bool)m_neighbors.count(id);}
     void SetInterfaceIndex(uint32_t ifaceIdx) {m_ifaceIdx = ifaceIdx;}
     void SetHelloSender(Callback<void> &cb) {m_sendHelloCallback = cb;}
     void SetDDSender(Callback<void, RouterId> &cb) {m_sendDDCallback = cb;}
     void SetLSRSender(Callback<void, RouterId> &cb) {m_sendLSRCallback = cb;}
     bool ShouleBeAdjacent(RouterId routerId, NeighborData &neighbor);
-    void NotifyEvent(RouterId routerId, RouterId neighborRouterId, NeighborEvent event);
+    void NotifyEvent(InterfaceEvent event);
+    void NotifyNeighborEvent(RouterId routerId, RouterId neighborRouterId, NeighborEvent event);
     /** lsRxmtListに入っているLSAHeaderを抜き出し、DDPacketを送信します */
     void SendDatabaseDescription(RouterId routerId);
     /** lsRequestListに入っているLSAHeaderを抜き出し、LSRPacketを送信します */

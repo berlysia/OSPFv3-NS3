@@ -16,11 +16,11 @@ InterfaceData::InterfaceData () {
     m_rxmtTimer.SetFunction(&InterfaceData::RxmtWrapper, this);
 }
 
-void InterfaceData::UpdateState(InterfaceState s) {
-    m_state = s;
+void InterfaceData::NotifyEvent(InterfaceEvent event) {
+    // TODO implement me
 }
 
-void InterfaceData::NotifyEvent(RouterId routerId, RouterId neighborRouterId, NeighborEvent event) {
+void InterfaceData::NotifyNeighborEvent(RouterId routerId, RouterId neighborRouterId, NeighborEvent event) {
     // OSPFv2 10.3 The Neighbor state machine
     // https://tools.ietf.org/html/rfc2328#page-89
     NeighborData &neighbor = m_neighbors[neighborRouterId];
@@ -29,7 +29,7 @@ void InterfaceData::NotifyEvent(RouterId routerId, RouterId neighborRouterId, Ne
         if (neighbor.IsState(NeighborState::DOWN)) {
             neighbor.SetState(NeighborState::ATTEMPT);
             SendHello();
-            neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyEvent, this);
+            neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyNeighborEvent, this);
             neighbor.SetInactivityTimerArguments(neighborRouterId, NeighborEvent::INACTIVE);
             neighbor.ResetInactivityTimer(m_routerDeadInterval);
         }
@@ -41,7 +41,7 @@ void InterfaceData::NotifyEvent(RouterId routerId, RouterId neighborRouterId, Ne
         {
             neighbor.SetState(NeighborState::INIT);
         }
-        neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyEvent, this);
+        neighbor.SetInactivityTimerCallback(&InterfaceData::NotifyNeighborEvent, this);
         neighbor.SetInactivityTimerArguments(neighborRouterId, NeighborEvent::INACTIVE);
         neighbor.ResetInactivityTimer(m_routerDeadInterval);
         return;

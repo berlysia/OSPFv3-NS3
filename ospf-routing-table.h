@@ -8,6 +8,12 @@
 #include "ns3/ipv6-routing-table-entry.h"
 #include <map>
 
+// OSPFv2 11 The Routing Table Structure
+// https://tools.ietf.org/html/rfc2328#page-107
+
+// OSPFv3 4.3 The Routing table Structure
+// https://tools.ietf.org/html/rfc5340#section-4.3
+
 namespace ns3 {
 namespace ospf {
     class RoutingTable : public Object {

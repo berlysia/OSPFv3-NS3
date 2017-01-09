@@ -50,6 +50,12 @@ public:
   virtual void PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const;
 
   virtual void HandleProtocolMessage (Ptr<Socket> socket);
+
+  virtual void ReceiveHelloPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet);
+  virtual void ReceiveDatabaseDescriptionPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet);
+  virtual void ReceiveLinkStateRequestPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet);
+  virtual void ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet);
+  virtual void ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ipv6Address srcAddr, Ptr<Packet> packet);
   
   virtual void Start ();
 
