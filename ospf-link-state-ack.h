@@ -1,5 +1,5 @@
-#ifndef OSPF_LSA_H
-#define OSPF_LSA_H
+#ifndef OSPF_LS_ACK_H
+#define OSPF_LS_ACK_H
 
 #include "ospf-header.h"
 #include "ospf-lsa-header.h"

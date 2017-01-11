@@ -45,10 +45,11 @@ namespace ospf {
 
 class OSPFLSAHeader : public Object {
 protected:
+    typedef uint32_t RouterId;
     uint16_t m_age;
     uint16_t m_type;
     uint32_t m_id;
-    uint32_t m_advRtr;
+    RouterId m_advRtr;
     int32_t m_seqNum;
     uint16_t m_checksum;
     uint16_t m_length;
@@ -82,8 +83,8 @@ public:
     virtual uint16_t GetType() {return m_type;}
     virtual void SetId(uint32_t id) {m_id = id;}
     virtual uint32_t GetId() {return m_id;}
-    virtual void SetAdvertisingRouter(uint32_t advRtr) {m_advRtr = advRtr;}
-    virtual uint32_t GetAdvertisingRouter() {return m_advRtr;}
+    virtual void SetAdvertisingRouter(RouterId advRtr) {m_advRtr = advRtr;}
+    virtual RouterId GetAdvertisingRouter() {return m_advRtr;}
     virtual void SetSequenceNumber(int32_t seqNum) {m_seqNum = seqNum;}
     virtual int32_t GetSequenceNumber() {return m_seqNum;}
     virtual void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
@@ -104,7 +105,11 @@ public:
             m_length == other.m_length
         );
     }
-    bool IsNewerThan (const OSPFLSAHeader &other) const {
+    bool operator== (const OSPFLinkStateIdentifier &id) const {
+        return CreateIdentifier() == id;
+    }
+
+    bool IsMoreRecentThan (const OSPFLSAHeader &other) const {
         if (m_seqNum > other.m_seqNum) return true;
         if (m_seqNum < other.m_seqNum) return false;
         if (m_checksum > other.m_checksum) return true;
@@ -134,6 +139,10 @@ public:
             m_age != g_maxAge &&
             other.m_age != g_maxAge
         );
+    }
+
+    bool IsDeprecatedInstance () {
+        return m_age == g_maxAge && m_seqNum == g_maxSeqNum;
     }
 };
 

@@ -5,6 +5,7 @@
 #include "ns3/callback.h"
 #include "ospf-struct-neighbor.h"
 #include "ospf-lsa-header.h"
+#include "ospf-lsa.h"
 #include <vector>
 #include <map>
 
@@ -74,6 +75,7 @@ class InterfaceData {
     std::map<RouterId, uint8_t> m_prefixLengthes;
 
 public:
+    static const uint32_t IndexToIdPadding;
     InterfaceData () {
         m_state = InterfaceState::DOWN;
         m_areaId = 0;
@@ -85,6 +87,7 @@ public:
         m_ifaceOutputCost = 1;
         m_rxmtInterval = Seconds(5.0);
         m_auType = 0;
+        m_helloTimer.SetDelay(m_helloInterval);
         m_waitTimer.SetDelay(m_routerDeadInterval);
     }
 
@@ -105,27 +108,50 @@ public:
     void SetType(InterfaceType type) {
         m_type = type;
     }
-    bool IsType(InterfaceType type) {
+    bool IsType(InterfaceType type) const {
         return m_type == type;
     }
 
     void SetState(InterfaceState state) {
         m_state = state;
     }
-    bool IsState(InterfaceState state) {
+    bool IsState(InterfaceState state) const {
         return m_state == state;
     }
 
-    uint8_t GetRouterPriority () {
+    uint32_t GetAreaId () const {
+        return m_areaId;
+    }
+
+    Time& GetHelloInterval () const {
+        return m_helloInterval;
+    }
+
+    Time& GetRouterDeadInterval () const {
+        return m_routerDeadInterval;
+    }
+
+    bool IsIndex(uint32_t ifaceIdx) const {
+        return m_interfaceId == ifaceIdx + InterfaceData::IndexToIdPadding;
+    }
+
+    uint32_t GetIfaceTransDelay () const {
+        return m_ifaceTransDelay;
+    }
+
+    uint8_t GetRouterPriority () const {
         return m_routerPriority;
     }
 
-    bool IsEligibleToDR () {
+    bool IsEligibleToDR () const {
         return m_routerPriority > 0;
     }
 
-    void SetInterfaceId(uint32_t ifaceId) {
-        m_interfaceId = ifaceId;
+    void SetInterfaceId(uint32_t ifaceIdx) {
+        m_interfaceId = ifaceIdx + InterfaceData::IndexToIdPadding;
+    }
+    uint32_t GetInterfaceId () {
+        return m_interfaceId;
     }
     NeighborData& GetNeighbor(RouterId routerId) {
         return m_neighbors[routerId];
@@ -133,19 +159,46 @@ public:
     std::map<RouterId, NeighborData>& GetNeighbors() {
         return m_neighbors;
     }
+    std::vector<RouterId> GetActiveNeighbors() {
+        std::vector<RouterId> neighs;
+        for (auto& kv : m_neighbors) {
+            if (kv.second.GetState() >= NeighborState::ONEWAY) {
+                neighs.push_back(kv.first);
+            }
+        }
+        return neighs;
+    }
     bool IsKnownNeighbor(RouterId id) const {
         return (bool)m_neighbors.count(id);
     }
-    InterfaceType GetType() {
+    InterfaceType GetType() const {
         return m_type;
     }
 
-    RouterId GetDesignatedRouter() {
+    RouterId GetDesignatedRouter() const {
         return m_designatedRouterId;
     }
 
-    RouterId GetBackupDesignatedRouter() {
+    RouterId GetBackupDesignatedRouter() const {
         return m_backupDesignatedRouterId;
+    }
+
+    bool HasExchangingNeighbor () const {
+        for (auto& kv : m_neighbors) {
+            if (
+                kv.second.IsState(NeighborState::EXCHANGE) ||
+                kv.second.IsState(NeighborState::LOADING)
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void AddRxmtList(OSPFLSA& lsa) {
+        for (auto& kv : m_neighbors) {
+            kv.second.AddRxmtList(lsa);
+        }
     }
 
     Timer& GetWaitTimer () {
@@ -156,16 +209,20 @@ public:
         m_waitTimer.Schedule();
     }
 
-    void SetHelloSender(Callback<void, uint32_t, RouterId> cb) {}
+    Timer& GetHelloTimer () {
+        return m_helloTimer;
+    }
 
     void CalcDesignatedRouter() {
-        // OSPFv2 9.4 Electiong the Designated Router
+        // OSPFv2 9.4 Electioning the Designated Router
         // https://tools.ietf.org/html/rfc2328#page-75
 
         // XXX: 今の所いらないので使うときに書いてください
         // 結果によってDR, BDR, DR_OTHERをSetStateして抜けてください
     }
 };
+
+const uint32_t InterfaceData::IndexToIdPadding = 1;
 
 }
 }

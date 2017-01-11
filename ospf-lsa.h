@@ -54,6 +54,10 @@ public:
         return GetHeader()->CreateIdentifier();
     }
 
+    bool IsDeprecatedInstance() {
+        return GetHeader()->IsDeprecatedInstance();
+    }
+
     Ptr<OSPFLSAHeader> GetHeader () {return m_header;}
     Ptr<OSPFLSABody> GetBody () {return m_body;}
     virtual bool operator== (const OSPFLSA &other) const {
@@ -73,6 +77,12 @@ public:
             m_header == other.m_header &&
             m_body == other.m_body
         );
+    }
+    virtual bool operator== (const OSPFLinkStateIdentifier &other) const {
+        if (m_header) {
+            return *m_header == other;
+        }
+        return false;
     }
 };
 

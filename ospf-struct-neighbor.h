@@ -6,10 +6,12 @@
 #include "ns3/ipv6-address.h"
 #include "ospf-hello.h"
 #include "ospf-database-description.h"
+#include "ospf-lsa.h"
 #include "ospf-lsa-header.h"
 #include "ospf-constants.h"
 #include <vector>
 #include <map>
+#include <algorithm>
 
 namespace ns3 {
 namespace ospf {
@@ -61,7 +63,7 @@ class NeighborData {
     Ipv6Address m_addr;
     RouterId m_designatedRouterId;
     RouterId m_backupDesignatedRouterId;
-    std::vector<OSPFLSAHeader> m_lsRxmtList;
+    std::vector<OSPFLSA> m_lsRxmtList;
     std::vector<OSPFLSAHeader> m_lsRequestList;
     std::vector<OSPFLSAHeader> m_lsdbSummaryList;
 
@@ -128,21 +130,21 @@ public:
         return m_inactivityTimer;
     }
 
-    RouterId GetRouterId () {
+    RouterId GetRouterId () const {
         return m_routerId;
     }
 
     void SetState(NeighborState s) {
         m_state = s;
     }
-    NeighborState GetState() {
+    NeighborState GetState() const {
         return m_state;
     }
-    bool IsState(NeighborState s) {
+    bool IsState(NeighborState s) const {
         return m_state == s;
     }
 
-    uint8_t GetRouterPriority () {
+    uint8_t GetRouterPriority () const {
         return m_routerPriority;
     }
 
@@ -154,32 +156,68 @@ public:
         m_isMaster = false;
     }
 
-    bool IsMaster () {
+    bool IsMaster () const {
         return m_isMaster;
     }
 
-    bool IsSlave () {
+    bool IsSlave () const {
         return !m_isMaster;
     }
 
-    RouterId GetDesignatedRouter() {
+    RouterId GetDesignatedRouter() const {
         return m_designatedRouterId;
     }
 
-    RouterId GetBackupDesignatedRouter() {
+    RouterId GetBackupDesignatedRouter() const {
         return m_backupDesignatedRouterId;
-    }
-
-    void AddLinkStateRequestList (OSPFLSAHeader header) {
-        m_lsRequestList.push_back(header);
     }
 
     bool IsExchangeDone () {
         return m_lsdbSummaryList.size() == 0;
     }
 
-    std::vector<OSPFLSAHeader>& GetRxmtList () {
+    std::vector<OSPFLSA>& GetRxmtList () {
         return m_lsRxmtList;
+    }
+
+    void AddRxmtList(OSPFLSA lsa) {
+        m_lsRxmtList.push_back(lsa);
+    }
+
+    bool HasInRxmtList (OSPFLinkStateIdentifier &id) {
+        for (OSPFLSA& item : m_lsRxmtList) {
+            // ここにあるLSAは中身が入っているはず
+            if (*item.GetHeader() == id) return true;
+        }
+        return false;
+    }
+
+    void RemoveFromRxmtList(OSPFLinkStateIdentifier &id) {
+        m_lsRxmtList.erase(std::remove(m_lsRxmtList.begin(), m_lsRxmtList.end(), id), m_lsRxmtList.end());
+    }
+
+    std::vector<OSPFLSAHeader>& GetRequestList () {
+        return m_lsRequestList;
+    }
+
+    void AddRequestList (OSPFLSAHeader header) {
+        m_lsRequestList.push_back(header);
+    }
+
+    bool HasInRequestList (OSPFLinkStateIdentifier &id) {
+        for (const OSPFLSAHeader& item : m_lsRequestList) {
+            if (item == id) return true;
+        }
+        return false;
+    }
+
+    OSPFLSAHeader& GetFromRequestList (OSPFLinkStateIdentifier &id) {
+        auto itr = std::find(m_lsRequestList.begin(), m_lsRequestList.end(), id);
+        return *itr; // 使う前にHasInRequestListすること
+    }
+
+    void RemoveFromRequestList(OSPFLinkStateIdentifier &id) {
+        m_lsRequestList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
     }
 
     bool IsEligibleToDR () const {
@@ -194,7 +232,7 @@ public:
         return m_routerId == m_backupDesignatedRouterId;
     }
 
-    bool IsRequestListEmpty () {
+    bool IsRequestListEmpty () const {
         return m_lsRequestList.empty();
     }
 

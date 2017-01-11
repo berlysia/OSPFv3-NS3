@@ -220,7 +220,7 @@ https://tools.ietf.org/html/rfc2328#page-123
     - 当該リンクのnetwork-LSAを再生成するかflushする。
     - ひとつか複数のrouter-LSAs and/or intra-area-prefix-LSAsを(再)生成するかflushする。
 3. ネイバーがFullの状態になるか、Fullから変化したとき。
-    - router-LSAを生成して送信する。
+    - ひとつか複数のrouter-LSAs and/or intra-area-prefix-LSAsを(再)生成するかflushする。
 4. ネイバーのインターフェイスIDが変化したとき。
     - router-LSAを生成して送信する。
 5. リンクに新たなプレフィクスが追加、または削除、あるいはその両方が行われたとき。
@@ -230,6 +230,5 @@ https://tools.ietf.org/html/rfc2328#page-123
 7. (考慮外)新たなlink-LSAを受け取って、リンク上の近接ルータが送信するLSAオプションの論理和が変化したとき。
     - ルータがリンクのDRならば、network-LSAを生成する。
 
-intra-area-prefix-LSAはDRが生成する。つまりP2P接続の場合は生成されない。
-network-LSAもDRが生成するので同様に生成されない。
-つまり喫緊に実装の必要があるのはlink-LSAとrouter-LSAのみ
+network-LSAはDRが生成するので同様に生成されない。
+つまり喫緊に実装の必要があるのはlink-LSAとrouter-LSA、intra-area-prefix-LSAのみ

@@ -17,9 +17,9 @@ void TestForOSPFLinkStateUpdate () {
     h1.Initialize(OSPF_LSA_TYPE_LINK);
     h2.Initialize(OSPF_LSA_TYPE_LINK);
     h3.Initialize(OSPF_LSA_TYPE_ROUTER);
-    srcHdr.SetLSAHeader(h1);
-    srcHdr.SetLSAHeader(h2);
-    srcHdr.SetLSAHeader(h3);
+    srcHdr.AddLSA(h1);
+    srcHdr.AddLSA(h2);
+    srcHdr.AddLSA(h3);
 
 
     Ptr<Packet> packet = Create<Packet>();

@@ -1,5 +1,5 @@
-#ifndef OSPF_LSU_H
-#define OSPF_LSU_H
+#ifndef OSPF_LS_UPDATE_H
+#define OSPF_LS_UPDATE_H
 
 #include "ospf-header.h"
 #include "ospf-lsa.h"
@@ -32,13 +32,13 @@ public:
         return m_lsas.size();
     }
 
-    void SetLSA(OSPFLSA &lsa) {
+    void AddLSA(OSPFLSA &lsa) {
         m_lsas.push_back(lsa);
     }
-    OSPFLSA& GetLSA (int index) const {
+    OSPFLSA& GetLSA (int index) {
         return m_lsas[index];
     }
-    OSPFLSA& GetLSAs () const {
+    std::vector<OSPFLSA>& GetLSAs () {
         return m_lsas;
     }
     bool operator== (const OSPFLinkStateUpdate &other) const {
