@@ -12,8 +12,8 @@ namespace ospf {
 
 class OSPFIntraAreaPrefixLSABody : public OSPFLSABody {
 private:
-    uint16_t m_prefixes;
-    uint16_t m_refTypes;
+    // uint16_t m_prefixes;
+    uint16_t m_refType;
     uint32_t m_refId; // router-LSAなら0、network-LSAならDRのrouterId
     uint32_t m_refAdvRtr;
     std::vector<uint8_t> m_prefixOptions;
@@ -33,31 +33,29 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator &i) const;
 
-    virtual uint16_t GetRtrPriority() const {return m_rtrPriority;}
-    virtual void SetRtrPriority(uint16_t prio) {m_rtrPriority = prio;}
-    virtual uint16_t GetOptions() const {return m_options;}
-    virtual void SetOptions(uint16_t opt) {m_options = opt;}
-    virtual const Ipv6Address& GetLinkLocalAddress() const {return m_addr;}
-    virtual void SetLinkLocalAddress(Ipv6Address &addr) {m_addr = addr;}
+    virtual uint16_t CountPrefixes() const {return m_addressPrefixes.size();}
+    virtual uint16_t GetReferenceType() const {return m_refType;}
+    virtual uint32_t GetReferenceLinkStateId () const {return m_refId;}
+    virtual uint32_t GetReferenceAdvertisedRouter () const {return m_refAdvRtr;}
     virtual uint8_t GetPrefixOption(uint32_t idx) const {return m_prefixOptions[idx];}
     virtual uint8_t GetPrefixLength(uint32_t idx) const {return m_prefixLengthes[idx];}
+    virtual uint16_t GetPrefixMetric(uint32_t idx) const {return m_metrics[idx];}
     virtual const Ipv6Address& GetPrefixAddress(uint32_t idx) const {return m_addressPrefixes[idx];}
-    virtual void AddPrefix(Ipv6Address& addr, uint8_t prefixLength, uint32_t option = 0) {
+    virtual void AddPrefix(Ipv6Address& addr, uint8_t prefixLength, uint16_t metric, uint32_t option = 0) {
         m_prefixLengthes.push_back(prefixLength);
         Ipv6Prefix prefix(prefixLength);
         m_addressPrefixes.push_back(addr.CombinePrefix(prefix));
         m_prefixOptions.push_back(option);
-    }
-    virtual uint32_t CountPrefixes() const {
-        return m_addressPrefixes.size();
+        m_metrics.push_back(metric);
     }
     virtual bool operator== (const OSPFIntraAreaPrefixLSABody &other) const {
         return (
-            m_rtrPriority == other.m_rtrPriority &&
-            m_options == other.m_options &&
-            m_addr == other.m_addr &&
+            m_refType == other.m_refType &&
+            m_refId == other.m_refId &&
+            m_refAdvRtr == other.m_refAdvRtr &&
             m_prefixOptions == other.m_prefixOptions &&
             m_prefixLengthes == other.m_prefixLengthes &&
+            m_metrics == other.m_metrics &&
             m_addressPrefixes == other.m_addressPrefixes
         );
     }

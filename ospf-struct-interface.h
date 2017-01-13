@@ -8,6 +8,7 @@
 #include "ospf-lsa.h"
 #include <vector>
 #include <map>
+#include <set>
 
 namespace ns3 {
 namespace ospf {
@@ -61,7 +62,7 @@ class InterfaceData {
     Time m_routerDeadInterval;
     uint32_t m_ifaceTransDelay;
     uint8_t m_routerPriority;
-    std::vector<OSPFLSAHeader> m_linkLocalLsas;
+    std::set<OSPFLinkStateIdentifier> m_linkLocalLsa_set;
     Timer m_helloTimer; // helloIntervalごと
     Timer m_waitTimer; // WaitingになったらrouterDeadInterval後
     std::map<RouterId, NeighborData> m_neighbors;
@@ -71,8 +72,8 @@ class InterfaceData {
     Time m_rxmtInterval;
     uint16_t m_auType;
     uint8_t m_authenticationKey[8];
-    std::map<RouterId, Ipv6Address> m_prefixAddrs;
-    std::map<RouterId, uint8_t> m_prefixLengthes;
+    std::map<RouterId, std::vector<Ipv6Address> > m_prefixAddrs;
+    std::map<RouterId, std::vector<uint8_t> > m_prefixLengthes;
 
 public:
     static const uint32_t IndexToIdPadding;
@@ -119,15 +120,19 @@ public:
         return m_state == state;
     }
 
+    Ipv6Address& GetAddress () {
+        return m_ifaceAddr;
+    }
+
     uint32_t GetAreaId () const {
         return m_areaId;
     }
 
-    Time& GetHelloInterval () const {
+    Time& GetHelloInterval () {
         return m_helloInterval;
     }
 
-    Time& GetRouterDeadInterval () const {
+    Time& GetRouterDeadInterval () {
         return m_routerDeadInterval;
     }
 
@@ -141,6 +146,23 @@ public:
 
     uint8_t GetRouterPriority () const {
         return m_routerPriority;
+    }
+
+    void AddLinkLocalLSA(RouterId routerId, OSPFLSA& lsa) {
+        m_linkLocalLsa_set.insert(lsa.GetIdentifier());
+        OSPFLinkLSABody& lsBody = dynamic_cast<OSPFLinkLSABody&>(*lsa.GetBody());
+        ClearPrefix(routerId);
+        for (int i = 0, l = lsBody.CountPrefixes(); i < l; ++i) {
+            AddPrefix(routerId, lsBody.GetPrefixAddress(i), lsBody.GetPrefixLength(i));
+        }
+    }
+
+    bool IsKnownLinkLocalLSA(OSPFLinkStateIdentifier id) {
+        return m_linkLocalLsa_set.count(id);
+    }
+
+    std::set<OSPFLinkStateIdentifier> GetLinkLocalLSAIds () {
+        return m_linkLocalLsa_set;
     }
 
     bool IsEligibleToDR () const {
@@ -159,10 +181,10 @@ public:
     std::map<RouterId, NeighborData>& GetNeighbors() {
         return m_neighbors;
     }
-    std::vector<RouterId> GetActiveNeighbors() {
+    std::vector<RouterId> GetActiveNeighbors() const {
         std::vector<RouterId> neighs;
         for (auto& kv : m_neighbors) {
-            if (kv.second.GetState() >= NeighborState::ONEWAY) {
+            if (kv.second.GetState() >= NeighborState::TWOWAY) {
                 neighs.push_back(kv.first);
             }
         }
@@ -199,6 +221,28 @@ public:
         for (auto& kv : m_neighbors) {
             kv.second.AddRxmtList(lsa);
         }
+    }
+
+    void ClearPrefix(RouterId routerId) {
+        m_prefixAddrs[routerId].clear();
+        m_prefixLengthes[routerId].clear();
+    }
+
+    void AddPrefix(RouterId routerId, Ipv6Address addr, uint8_t length) {
+        m_prefixAddrs[routerId].push_back(addr);
+        m_prefixLengthes[routerId].push_back(length);
+    }
+
+    uint32_t CountPrefixes (RouterId routerId) {
+        return m_prefixAddrs[routerId].size();
+    }
+
+    Ipv6Address& GetPrefixAddress(RouterId routerId, uint32_t idx) {
+        return m_prefixAddrs[routerId][idx];
+    }
+
+    uint8_t GetPrefixLength(RouterId routerId, uint32_t idx) {
+        return m_prefixLengthes[routerId][idx];
     }
 
     Timer& GetWaitTimer () {

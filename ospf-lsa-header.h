@@ -81,12 +81,17 @@ public:
     virtual uint16_t GetAge() {return m_age;}
     virtual void SetType(uint16_t type) {m_type = type;}
     virtual uint16_t GetType() {return m_type;}
+    virtual bool IsLinkLocalScope () {return (m_type & 0xf000) == 0;}
+    virtual bool IsAreaScope () {return (m_type & 0xf000) == 2;}
+    virtual bool IsASScope () {return (m_type & 0xf000) == 4;}
     virtual void SetId(uint32_t id) {m_id = id;}
     virtual uint32_t GetId() {return m_id;}
     virtual void SetAdvertisingRouter(RouterId advRtr) {m_advRtr = advRtr;}
     virtual RouterId GetAdvertisingRouter() {return m_advRtr;}
     virtual void SetSequenceNumber(int32_t seqNum) {m_seqNum = seqNum;}
     virtual int32_t GetSequenceNumber() {return m_seqNum;}
+    virtual void IncrementSequenceNumber() {m_seqNum++;}
+    virtual void InitializeSequenceNumber() {m_seqNum = g_initialSeqNum;}
     virtual void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
     virtual uint16_t GetCheckSum() {return m_checksum;}
     virtual void SetLength(uint16_t length) {m_length = length;}

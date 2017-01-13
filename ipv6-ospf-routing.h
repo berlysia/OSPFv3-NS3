@@ -40,8 +40,10 @@ private:
     uint32_t m_routerId;
 
     typedef std::map< Ptr<Socket>, uint32_t > SocketToIfaceIdx;
+    typedef std::map< uint32_t, Ptr<Socket> > IfaceIdxToSocket;
 
     SocketToIfaceIdx m_socketToIfaceIdx;
+    IfaceIdxToSocket m_ifaceIdxToSocket;
     std::vector<InterfaceData> m_interfaces;
     RoutingTable m_routingTable;
     OSPFLSDB m_lsdb;
@@ -85,9 +87,11 @@ public:
     virtual void ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ptr<Packet> packet);
 
     virtual void SendHelloPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
-    virtual void SendDatabaseDescriptionPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
+    virtual void SendDatabaseDescriptionPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0, bool isInit = false);
     virtual void SendLinkStateRequestPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
-    virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, OSPFLSA& lsa, RouterId neighborRouterId = 0);
+    virtual void SendLinkStateUpdatePacket();
+    virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx);
+    virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, RouterId neighborRouterId);
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, std::vector<OSPFLSA>& lsas, RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, OSPFLSAHeader& lsaHeader , RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, std::vector<OSPFLSAHeader>& lsaHeaders , RouterId neighborRouterId = 0);
@@ -98,6 +102,10 @@ public:
     virtual void RemoveFromAllRxmtList(OSPFLinkStateIdentifier& id);
     virtual Time& GetLastLSUSentTime ();
     virtual void AssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId senderRouterId);
+    virtual void DirectAssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId neighborRouterId);
+
+    virtual void OriginateLinkLSA(uint32_t ifaceIdx);
+    virtual void OriginateRouterLSA();
     
     virtual void Start ();
 

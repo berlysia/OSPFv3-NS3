@@ -48,7 +48,7 @@ public:
     RouterId GetDesignatedRouter() {return m_designatedRouterId;}
     void SetBackupDesignatedRouter(RouterId backupDesignatedRouter) {m_backupDesignatedRouterId = backupDesignatedRouter;};
     RouterId GetBackupDesignatedRouter() {return m_backupDesignatedRouterId;}
-    void SetNeighbors(std::vector<RouterId> &neighbors) {m_neighborId = neighbors;}
+    void SetNeighbors(std::vector<RouterId> neighbors) {m_neighborId = neighbors;}
     std::vector<RouterId>& GetNeighbors() {return m_neighborId;}
     bool operator== (const OSPFHello &other) const {
         OSPFHeader sup = *this;

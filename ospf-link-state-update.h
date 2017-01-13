@@ -28,12 +28,15 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator start) const;
 
-    virtual uint32_t CountLSAHeaders () const {
+    virtual uint32_t CountLSAs () const {
         return m_lsas.size();
     }
 
     void AddLSA(OSPFLSA &lsa) {
         m_lsas.push_back(lsa);
+    }
+    void SetLSAs(std::vector<OSPFLSA> lsas) {
+        m_lsas = lsas;
     }
     OSPFLSA& GetLSA (int index) {
         return m_lsas[index];

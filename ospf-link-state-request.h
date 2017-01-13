@@ -35,8 +35,14 @@ public:
     virtual void SetLinkStateIdentifier(uint16_t type, uint32_t id, uint32_t advRtr) {
         m_ids.push_back(OSPFLinkStateIdentifier(type, id, advRtr));
     }
+    virtual void SetLinkStateIdentifier(OSPFLinkStateIdentifier id) {
+        m_ids.push_back(id);
+    }
     virtual OSPFLinkStateIdentifier GetLinkStateIdentifier (int index) {
         return m_ids[index];
+    }
+    virtual void SetLinkStateIdentifiers(std::vector<OSPFLinkStateIdentifier> lsids) {
+        m_ids = lsids;
     }
     virtual std::vector<OSPFLinkStateIdentifier> GetLinkStateIdentifiers () {
         return m_ids;

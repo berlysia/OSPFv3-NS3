@@ -54,6 +54,7 @@ class NeighborData {
     typedef uint32_t RouterId;
     NeighborState m_state;
     Timer m_inactivityTimer; // 初期値はrouterDeadInterval, HelloPacket受信でリセット
+    Timer m_lastReceivedDdClearTimer; // 初期値はrouterDeadInterval, HelloPacket受信でリセット
     bool m_isMaster; // ExStart時に決定
     int32_t m_ddSeqNum;
     OSPFDatabaseDescription m_lastReceivedDd;
@@ -105,8 +106,12 @@ public:
         m_initialized = true;
     }
 
-    void SetLastReceivedDD(OSPFDatabaseDescription &dd) {
-        dd.GetLSAHeaders().clear();
+    uint32_t GetInterfaceId() const {
+        return m_routerIfaceId;
+    }
+
+    void SetLastReceivedDD(OSPFDatabaseDescription dd) {
+        dd.GetLSAHeaders().clear(); // コピーされているので問題ないはず
         m_lastReceivedDd = dd;
     }
 
@@ -148,6 +153,10 @@ public:
         return m_routerPriority;
     }
 
+    Ipv6Address& GetAddress () {
+        return m_addr;
+    }
+
     void SetAsMaster () {
         m_isMaster = true;
     }
@@ -178,6 +187,16 @@ public:
 
     std::vector<OSPFLSA>& GetRxmtList () {
         return m_lsRxmtList;
+    }
+
+    std::vector<OSPFLSA> GetRxmtList (uint32_t maxBytes) {
+        std::vector<OSPFLSA> ret;
+        for (int i = 0, l = m_lsRxmtList.size(); i < l; ++i) {
+            maxBytes -= m_lsRxmtList[i].GetSerializedSize();
+            if (maxBytes <= 0) break;
+            ret.push_back(m_lsRxmtList[i]);
+        }
+        return ret;
     }
 
     void AddRxmtList(OSPFLSA lsa) {
@@ -218,6 +237,35 @@ public:
 
     void RemoveFromRequestList(OSPFLinkStateIdentifier &id) {
         m_lsRequestList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
+    }
+
+    std::vector<OSPFLSAHeader> GetRequestList (uint32_t maxBytes) {
+        std::vector<OSPFLSAHeader> ret;
+        for (int i = 0, l = std::min(m_lsRequestList.size(), (unsigned long)(maxBytes / 20)); i < l; ++i) {
+            ret.push_back(m_lsRequestList[i]);
+        }
+        return ret;
+    }
+
+    void SetSummaryList (std::vector<OSPFLSAHeader> summary) {
+        m_lsdbSummaryList = summary;
+    }
+
+    void RemoveFromSummaryList(OSPFLinkStateIdentifier &id) {
+        m_lsdbSummaryList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
+    }
+
+    std::vector<OSPFLSAHeader> GetSummary (uint32_t maxBytes) {
+        std::vector<OSPFLSAHeader> ret;
+        for (int i = maxBytes / 20; i && !m_lsdbSummaryList.empty(); --i) {
+            ret.push_back(m_lsdbSummaryList.back());
+            m_lsdbSummaryList.pop_back();
+        }
+        return ret;
+    }
+
+    bool HasMoreSummary () const {
+        return m_lsdbSummaryList.size();
     }
 
     bool IsEligibleToDR () const {
