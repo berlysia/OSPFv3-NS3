@@ -28,17 +28,19 @@ uint32_t OSPFLinkStateRequest::GetSerializedSize () const {
     return OSPFHeader::GetSerializedSize() + 4 + (2 + 4 + 4) * m_ids.size();
 } 
 void OSPFLinkStateRequest::Print (std::ostream &os) const {
+    os << "(";
     OSPFHeader::Print(os);
-    os << "## Link State Request\n";
+    os << "Link State Request - ";
     uint32_t size = m_ids.size();
-    os << "  identifiers: " << size << "\n";
+    os << "identifiers: " << size << "( ";
     for (int i = 0, l = size; i < l; ++i) {
         const OSPFLinkStateIdentifier &identifier = m_ids[i];
-        os << "  ### Link State Identifier\n";
-        os << "    type  : " << identifier.m_type << "\n";
-        os << "    id    : " << identifier.m_id << "\n";
-        os << "    advRtr: " << identifier.m_advRtr << "\n";
+        os << "[";
+        os << "type: " << identifier.m_type << ", ";
+        os << "id: " << identifier.m_id << ", ";
+        os << "advRtr: " << identifier.m_advRtr << " ], ";
     }
+    os << ")";
 } 
 void OSPFLinkStateRequest::Serialize (Buffer::Iterator i) const {
     OSPFHeader::Serialize(i);

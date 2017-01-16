@@ -6,6 +6,9 @@
 
 #include "ospf-router-lsa.h"
 #include "ospf-link-lsa.h"
+#include "ospf-intra-area-prefix-lsa.h"
+
+#include <iostream>
 
 using namespace ns3;
 
@@ -18,8 +21,17 @@ private:
     Ptr<OSPFLSABody> m_body;
 
 public:
-    OSPFLSA () {};
-    ~OSPFLSA () {};
+    OSPFLSA () {
+        // std::cout << "OSPFLSA::ctor - " << this << std::endl;
+    };
+    OSPFLSA (const OSPFLSA& other) {
+        // std::cout << "OSPFLSA::copy - " << this << " <- " << &other << std::endl;
+        m_header = other.m_header;
+        m_body = other.m_body;
+    }
+    ~OSPFLSA () {
+        // std::cout << "OSPFLSA::dtor - " << this << "( " << m_header << ", " << m_body << " )" << std::endl;
+    };
 
     static TypeId GetTypeId();
 
@@ -47,6 +59,9 @@ public:
             case OSPF_LSA_TYPE_LINK: {
                 m_body = Create<OSPFLinkLSABody>();
             } break;
+            case OSPF_LSA_TYPE_INTRA_AREA_PREFIX: {
+                m_body = Create<OSPFIntraAreaPrefixLSABody>();
+            } break;
         }
     }
 
@@ -60,6 +75,9 @@ public:
 
     Ptr<OSPFLSAHeader> GetHeader () {return m_header;}
     Ptr<OSPFLSABody> GetBody () {return m_body;}
+    template <typename T> Ptr<T> GetBody () {
+        return DynamicCast<T>(m_body);
+    }
     virtual bool operator== (const OSPFLSA &other) const {
         if (m_header && m_body) {
             return (

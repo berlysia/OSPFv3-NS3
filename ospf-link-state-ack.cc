@@ -22,12 +22,15 @@ uint32_t OSPFLinkStateAck::GetSerializedSize () const {
     return OSPFHeader::GetSerializedSize() + 4 + m_lsaHeaders.size() * 20;
 } 
 void OSPFLinkStateAck::Print (std::ostream &os) const {
+    os << "(";
     OSPFHeader::Print(os);
-    os << "## Link State Ack Packet \n";
-    os << "  lsaHeaders: " << m_lsaHeaders.size() << "\n";
+    os << "Link State Ack - ";
+    os << "lsaHeaders: " << m_lsaHeaders.size() << "[";
     for (int i = 0, l = m_lsaHeaders.size(); i < l; ++i) {
         m_lsaHeaders[i].Print(os);
+        os << ", ";
     }
+    os << "])";
 } 
 void OSPFLinkStateAck::Serialize (Buffer::Iterator start) const {
     OSPFHeader::Serialize(start);

@@ -22,20 +22,21 @@ uint32_t OSPFHello::GetSerializedSize () const {
     return OSPFHeader::GetSerializedSize() + 4 + 1 + 2 + 2 + 4 + 4 + 4 + m_neighborId.size() * 4;
 } 
 void OSPFHello::Print (std::ostream &os) const {
+    os << "(";
     OSPFHeader::Print(os);
-    os << "## Hello Packet\n";
-    os << "  option: " << m_options << "\n";
-    os << "  routerPriority: " << (int)m_routerPriority << "\n";
-    os << "  helloInterval: " << m_helloInterval << "\n";
-    os << "  deadInterval : " << m_routerDeadInterval << "\n";
-    os << "  DRouter  : " << m_designatedRouterId << "\n";
-    os << "  BDRouter : " << m_backupDesignatedRouterId << "\n";
-    os << "  neighbors: " << m_neighborId.size() << "\n";
-    os << "  [";
+    os << " Hello - ";
+    os << "option: " << m_options << ", ";
+    os << "routerPriority: " << (int)m_routerPriority << ", ";
+    os << "helloInterval: " << m_helloInterval << ", ";
+    os << "deadInterval : " << m_routerDeadInterval << ", ";
+    os << "DRouter  : " << m_designatedRouterId << ", ";
+    os << "BDRouter : " << m_backupDesignatedRouterId << ", ";
+    os << "neighbors: " << m_neighborId.size() << ", ";
+    os << "[";
     for (int i = 0, l = m_neighborId.size(); i < l; ++i) {
-        os << "\n    " << m_neighborId[i]; 
+        os << m_neighborId[i] << ", ";
     }
-    os << "\n  ]\n";
+    os << "])";
 } 
 void OSPFHello::Serialize (Buffer::Iterator start) const {
     OSPFHeader::Serialize(start);

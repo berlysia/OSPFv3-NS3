@@ -26,12 +26,15 @@ uint32_t OSPFLinkStateUpdate::GetSerializedSize () const {
     return OSPFHeader::GetSerializedSize() + 4 + size;
 } 
 void OSPFLinkStateUpdate::Print (std::ostream &os) const {
+    os << "(";
     OSPFHeader::Print(os);
-    os << "## Link State Update\n";
-    os << "  lsas: " << m_lsas.size() << "\n";
+    os << "Link State Update";
+    os << "lsas: " << m_lsas.size() << "(";
     for (int i = 0, l = m_lsas.size(); i < l; ++i) {
         m_lsas[i].Print(os);
+        os << ", ";
     }
+    os << ")";
 } 
 void OSPFLinkStateUpdate::Serialize (Buffer::Iterator start) const {
     OSPFHeader::Serialize(start);

@@ -76,19 +76,25 @@ class InterfaceData {
     std::map<RouterId, std::vector<uint8_t> > m_prefixLengthes;
 
 public:
-    static const uint32_t IndexToIdPadding;
     InterfaceData () {
+        // m_type;
         m_state = InterfaceState::DOWN;
+        // m_interfaceId;
+        // m_ifaceAddr;
+        // m_ifaceMask;
         m_areaId = 0;
         m_helloInterval = Seconds(10.0);
         m_routerDeadInterval = Seconds(10.0);
         m_ifaceTransDelay = 1;
+        // m_routerPriority;
         m_designatedRouterId = 0;
         m_backupDesignatedRouterId = 0;
         m_ifaceOutputCost = 1;
         m_rxmtInterval = Seconds(5.0);
         m_auType = 0;
+        m_helloTimer = Timer(Timer::REMOVE_ON_DESTROY);
         m_helloTimer.SetDelay(m_helloInterval);
+        m_waitTimer = Timer(Timer::REMOVE_ON_DESTROY);
         m_waitTimer.SetDelay(m_routerDeadInterval);
     }
 
@@ -124,6 +130,18 @@ public:
         return m_ifaceAddr;
     }
 
+    void SetAddress (Ipv6Address addr) {
+        m_ifaceAddr = addr;
+    }
+
+    Ipv6Prefix& GetPrefix () {
+        return m_ifaceMask;
+    }
+
+    void SetPrefix (Ipv6Prefix prefix) {
+        m_ifaceMask = prefix;
+    }
+
     uint32_t GetAreaId () const {
         return m_areaId;
     }
@@ -137,7 +155,7 @@ public:
     }
 
     bool IsIndex(uint32_t ifaceIdx) const {
-        return m_interfaceId == ifaceIdx + InterfaceData::IndexToIdPadding;
+        return m_interfaceId == ifaceIdx;
     }
 
     uint32_t GetIfaceTransDelay () const {
@@ -170,13 +188,16 @@ public:
     }
 
     void SetInterfaceId(uint32_t ifaceIdx) {
-        m_interfaceId = ifaceIdx + InterfaceData::IndexToIdPadding;
+        m_interfaceId = ifaceIdx;
     }
     uint32_t GetInterfaceId () {
         return m_interfaceId;
     }
     NeighborData& GetNeighbor(RouterId routerId) {
         return m_neighbors[routerId];
+    }
+    bool HasNeighbor(RouterId routerId) const {
+        return m_neighbors.count(routerId);
     }
     std::map<RouterId, NeighborData>& GetNeighbors() {
         return m_neighbors;
@@ -257,6 +278,17 @@ public:
         return m_helloTimer;
     }
 
+    void ScheduleHello () {
+        m_helloTimer.Schedule();
+    }
+
+    bool IsActive () {
+        return !(
+            IsState(InterfaceState::DOWN) ||
+            IsState(InterfaceState::LOOPBACK)
+        );
+    }
+
     void CalcDesignatedRouter() {
         // OSPFv2 9.4 Electioning the Designated Router
         // https://tools.ietf.org/html/rfc2328#page-75
@@ -265,8 +297,6 @@ public:
         // 結果によってDR, BDR, DR_OTHERをSetStateして抜けてください
     }
 };
-
-const uint32_t InterfaceData::IndexToIdPadding = 1;
 
 }
 }

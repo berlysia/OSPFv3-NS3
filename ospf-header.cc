@@ -26,15 +26,15 @@ uint32_t OSPFHeader::GetSerializedSize () const {
     return 19;
 } 
 void OSPFHeader::Print (std::ostream &os) const {
-    os << "# OSPFHeader\n";
-    os << "version: " << (int)m_version << "\n";
-    os << "type   : " << (int)m_type << "\n";
-    os << "packetLength   : " << m_packetLength << "\n";
-    os << "router : " << m_routerId << "\n";
-    os << "area   : " << m_areaId << "\n";
-    os << "checksum   : " << m_checksum << "\n";
-    os << "instanceId   : " << (int)m_instanceId << "\n";
-    os << "interfaceId   : " << (int)m_interfaceId << "\n";
+    os << "(";
+    os << "version: " << (int)m_version << ", ";
+    os << "type: " << (int)m_type << ", ";
+    // os << "packetLength: " << m_packetLength << ", ";
+    os << "router: " << m_routerId << ", ";
+    os << "area: " << m_areaId << ", ";
+    // os << "checksum: " << m_checksum << ", ";
+    os << "instanceId: " << (int)m_instanceId << ", ";
+    os << "interfaceId: " << (int)m_interfaceId << ")";
 } 
 void OSPFHeader::Serialize (Buffer::Iterator start) const {
     start.WriteU8(m_version);

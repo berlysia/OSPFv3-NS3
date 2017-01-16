@@ -44,11 +44,20 @@ private:
 
     SocketToIfaceIdx m_socketToIfaceIdx;
     IfaceIdxToSocket m_ifaceIdxToSocket;
+    SocketToIfaceIdx m_llmSocketToIfaceIdx;
+    IfaceIdxToSocket m_ifaceIdxToLlmSocket;
     std::vector<InterfaceData> m_interfaces;
     RoutingTable m_routingTable;
     OSPFLSDB m_lsdb;
     Time m_lastLsuSendTime;
     std::set<uint32_t> m_rtrIfaceId_set;
+
+    // area data structureだが簡単のために書いてしまう
+    std::set<OSPFLinkStateIdentifier> m_intraAreaPrefixLSA_set;
+    std::set<OSPFLinkStateIdentifier> m_routerLSA_set;
+
+    bool m_tableUpdateRequired = false;
+    bool m_tableUpdateReducible = false;
 
     /**
     * \brief Ipv6 reference.
@@ -86,7 +95,7 @@ public:
     virtual void ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ptr<Packet> packet);
     virtual void ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ptr<Packet> packet);
 
-    virtual void SendHelloPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
+    virtual void SendHelloPacket(uint32_t ifaceIdx);
     virtual void SendDatabaseDescriptionPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0, bool isInit = false);
     virtual void SendLinkStateRequestPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
     virtual void SendLinkStateUpdatePacket();
@@ -104,21 +113,22 @@ public:
     virtual void AssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId senderRouterId);
     virtual void DirectAssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId neighborRouterId);
 
-    virtual void OriginateLinkLSA(uint32_t ifaceIdx);
-    virtual void OriginateRouterLSA();
+    virtual uint16_t CalcMetricForInterface (uint32_t ifaceIdx);
+
+    virtual void OriginateRouterSpecificLSAs(uint32_t ifaceIdx, bool forceRefresh = false);
+    virtual void OriginateLinkLSA(uint32_t ifaceIdx, bool forceRefresh = false);
+    virtual void OriginateRouterLSA(bool forceRefresh = false);
+    virtual void OriginateIntraAreaPrefixLSA(bool forceRefresh = false);
+
+    virtual void CalcRoutingTable (bool recalcAll = false);
     
     virtual void Start ();
 
-    virtual Ptr<Ipv6Route> Lookup(Ipv6Address dst, Ptr<NetDevice> interface);
+    virtual Ptr<Ipv6Route> Lookup(Ipv6Address dst, Ptr<NetDevice> interface = 0);
 
 protected:
     virtual void DoDispose ();
 };
-
-const Ipv6Address Ipv6OspfRouting::AllSPFRouters = Ipv6Address("ff02::5");
-const Ipv6Address Ipv6OspfRouting::AllDRRouters = Ipv6Address("ff02::6");
-
-uint32_t Ipv6OspfRouting::ROUTER_ID_SEED = 1;
 
 } /* namespace ospf */
 } /* namespace ns3 */

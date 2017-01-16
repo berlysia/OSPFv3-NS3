@@ -8,13 +8,13 @@ void TestForOSPFLinkStateRequest();
 void TestForOSPFLinkStateUpdate();
 void TestForOSPFLinkStateAck();
 
-int main () {
-    cout << "OSPF entrypoint - begin" << endl;
-    TestForOSPFHeader();
-    TestForOSPFHello();
-    TestForOSPFDatabaseDescription();
-    TestForOSPFLinkStateRequest();
-    TestForOSPFLinkStateUpdate();
-    TestForOSPFLinkStateAck();
-    cout << "OSPF entrypoint - end" << endl;
-}
+// int main () {
+//     cout << "OSPF entrypoint - begin" << endl;
+//     TestForOSPFHeader();
+//     TestForOSPFHello();
+//     TestForOSPFDatabaseDescription();
+//     TestForOSPFLinkStateRequest();
+//     TestForOSPFLinkStateUpdate();
+//     TestForOSPFLinkStateAck();
+//     cout << "OSPF entrypoint - end" << endl;
+// }

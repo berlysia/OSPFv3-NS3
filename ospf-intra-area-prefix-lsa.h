@@ -35,13 +35,16 @@ public:
 
     virtual uint16_t CountPrefixes() const {return m_addressPrefixes.size();}
     virtual uint16_t GetReferenceType() const {return m_refType;}
+    virtual void SetReferenceType(uint16_t type) {m_refType = type;}
     virtual uint32_t GetReferenceLinkStateId () const {return m_refId;}
+    virtual void SetReferenceLinkStateId (uint32_t id) {m_refId = id;}
     virtual uint32_t GetReferenceAdvertisedRouter () const {return m_refAdvRtr;}
+    virtual void SetReferenceAdvertisedRouter (uint32_t advRtr) {m_refAdvRtr = advRtr;}
     virtual uint8_t GetPrefixOption(uint32_t idx) const {return m_prefixOptions[idx];}
     virtual uint8_t GetPrefixLength(uint32_t idx) const {return m_prefixLengthes[idx];}
     virtual uint16_t GetPrefixMetric(uint32_t idx) const {return m_metrics[idx];}
     virtual const Ipv6Address& GetPrefixAddress(uint32_t idx) const {return m_addressPrefixes[idx];}
-    virtual void AddPrefix(Ipv6Address& addr, uint8_t prefixLength, uint16_t metric, uint32_t option = 0) {
+    virtual void AddPrefix(Ipv6Address addr, uint8_t prefixLength, uint16_t metric, uint32_t option = 0) {
         m_prefixLengthes.push_back(prefixLength);
         Ipv6Prefix prefix(prefixLength);
         m_addressPrefixes.push_back(addr.CombinePrefix(prefix));

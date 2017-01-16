@@ -18,7 +18,17 @@ class OSPFLSDB {
     std::map<OSPFLinkStateIdentifier, uint16_t> m_addedAge;
 
 public:
-    void Add(OSPFLSA lsa) {
+    OSPFLSDB() {}
+    ~OSPFLSDB() {
+        for (auto it = m_db.begin(); it != m_db.end(); it = m_db.erase(it)) {
+        }
+        for (auto it = m_addedTime.begin(); it != m_addedTime.end(); it = m_addedTime.erase(it)) {
+        }
+        for (auto it = m_addedAge.begin(); it != m_addedAge.end(); it = m_addedAge.erase(it)) {
+        }
+    }
+
+    void Add(OSPFLSA& lsa) {
         OSPFLinkStateIdentifier id = lsa.GetIdentifier();
         m_db[id] = lsa;
         m_addedTime[id] = ns3::Now();
@@ -33,11 +43,11 @@ public:
         return m_db.count(id);
     }
 
-    uint32_t CalcAge(OSPFLinkStateIdentifier& id) {
+    uint32_t CalcAge(const OSPFLinkStateIdentifier& id) {
         return (uint32_t)(ns3::Now() - m_addedTime[id]).ToInteger(Time::S) + m_addedAge[id];
     }
 
-    OSPFLSA& Get(OSPFLinkStateIdentifier id) {
+    OSPFLSA& Get(const OSPFLinkStateIdentifier& id) {
         m_db[id].GetHeader()->SetAge(std::min(CalcAge(id), g_maxAge));
         return m_db[id];
     }
@@ -48,6 +58,14 @@ public:
 
     bool IsElapsedMinLsArrival(OSPFLinkStateIdentifier id) {
         return m_addedTime[id] + g_minLsArrival <= Now();
+    }
+
+    std::vector<OSPFLSA> Aggregate(std::set<OSPFLinkStateIdentifier> id_set) {
+        std::vector<OSPFLSA> ret;
+        for (const OSPFLinkStateIdentifier& id : id_set) {
+            ret.push_back(Get(id));
+        }
+        return std::move(ret);
     }
 
     void GetSummary (std::vector<OSPFLSAHeader>& summary, std::vector<OSPFLSA>& rxmt) {

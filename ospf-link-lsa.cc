@@ -35,16 +35,18 @@ uint32_t OSPFLinkLSABody::GetSerializedSize () const {
     return size + m_addressPrefixes.size() * 18;
 } 
 void OSPFLinkLSABody::Print (std::ostream &os) const {
-    os << "    ### Link LSA\n";
-    os << "      rtrPriority : " << m_rtrPriority << "\n";
-    os << "      options     : " << m_options << "\n";
-    os << "      localAddress: " << m_addr << "\n";
-    os << "      #prefixes   : " << m_addressPrefixes.size() << "\n";
+    os << "(Link LSA: [";
+    os << "rtrPriority: " << m_rtrPriority << ", ";
+    os << "options: " << m_options << ", ";
+    os << "localAddress: " << m_addr << ", ";
+    os << "#prefixes: " << m_addressPrefixes.size() << "(";
     for (int idx = 0, l = m_addressPrefixes.size(); idx < l; ++idx) {
-        os << "        prefixOption : " << m_prefixOptions[idx] << "\n";
-        os << "        prefixLength : " << m_prefixLengthes[idx] << "\n";
-        os << "        prefix       : " << m_addressPrefixes[idx] << "\n";
+        os << "[";
+        os << "prefixOption: " << (uint16_t)m_prefixOptions[idx] << ", ";
+        os << "prefixLength: " << (uint16_t)m_prefixLengthes[idx] << ", ";
+        os << "prefix: " << m_addressPrefixes[idx] << "]";
     }
+    os << ")])";
 } 
 void OSPFLinkLSABody::Serialize (Buffer::Iterator &i) const {
     i.WriteHtonU16(m_rtrPriority);

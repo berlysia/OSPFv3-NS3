@@ -57,7 +57,7 @@ class NeighborData {
     Timer m_lastReceivedDdClearTimer; // 初期値はrouterDeadInterval, HelloPacket受信でリセット
     bool m_isMaster; // ExStart時に決定
     int32_t m_ddSeqNum;
-    OSPFDatabaseDescription m_lastReceivedDd;
+    OSPFDatabaseDescription* m_lastReceivedDd;
     uint32_t m_routerId;
     uint8_t m_routerPriority;
     uint32_t m_routerIfaceId;
@@ -112,7 +112,7 @@ public:
 
     void SetLastReceivedDD(OSPFDatabaseDescription dd) {
         dd.GetLSAHeaders().clear(); // コピーされているので問題ないはず
-        m_lastReceivedDd = dd;
+        m_lastReceivedDd = new OSPFDatabaseDescription(dd);
     }
 
     void SetSequenceNumber(int32_t seqNum) {
@@ -128,11 +128,19 @@ public:
     }
 
     OSPFDatabaseDescription& GetLastPacket() {
-        return m_lastReceivedDd;
+        return *m_lastReceivedDd;
+    }
+
+    void ClearLastPacket() {
+        m_lastReceivedDd = nullptr;
     }
 
     Timer& GetInactivityTimer () {
         return m_inactivityTimer;
+    }
+
+    Timer& GetLastPacketClearTimer () {
+        return m_lastReceivedDdClearTimer;
     }
 
     RouterId GetRouterId () const {

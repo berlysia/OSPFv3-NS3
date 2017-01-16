@@ -19,6 +19,9 @@ struct OSPFLinkStateIdentifier {
         // 0x2002 is type value for network-LSA
         return m_advRtr == routerId || (m_type == 0x2002 && rtrIfaceId_set.count(m_id));
     }
+    OSPFLinkStateIdentifier As(uint16_t type) const {
+        return OSPFLinkStateIdentifier(type, m_id, m_advRtr);
+    }
     bool operator== (const OSPFLinkStateIdentifier &other) const {
         return (
             m_type == other.m_type &&

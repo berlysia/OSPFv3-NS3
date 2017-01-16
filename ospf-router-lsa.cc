@@ -31,16 +31,18 @@ uint32_t OSPFRouterLSABody::GetSerializedSize () const {
     return 4 + 4 + 15 * m_types.size();
 } 
 void OSPFRouterLSABody::Print (std::ostream &os) const {
-    os << "    ### Router LSA\n";
-    os << "      options: " << m_options << "\n";
-    os << "      #lsa   : " << m_types.size() << "\n";
-    for (int idx = 0, l = m_types.size(); idx < l; ++idx) {
-        os << "        type               : " << m_types[idx] << "\n";
-        os << "        metric             : " << m_metrics[idx] << "\n";
-        os << "        interfaceId        : " << m_interfaceIds[idx] << "\n";
-        os << "        neighborInterfaceId: " << m_neighborInterfaceIds[idx] << "\n";
-        os << "        neighborRouterId   : " << m_neighborRouterIds[idx] << "\n";
+    os << "(Router LSA: [";
+    os << "options: " << m_options << ", ";
+    os << "#lsa: " << m_types.size() << "(";
+    for (uint32_t idx = 0, l = m_types.size(); idx < l; ++idx) {
+        os << "[";
+        os << "type: " << (uint16_t)m_types[idx] << ", ";
+        os << "metric: " << m_metrics[idx] << ", ";
+        os << "interfaceId: " << m_interfaceIds[idx] << ", ";
+        os << "neighborInterfaceId: " << m_neighborInterfaceIds[idx] << ", ";
+        os << "neighborRouterId: " << m_neighborRouterIds[idx] << "]";
     }
+    os << ")])";
 } 
 void OSPFRouterLSABody::Serialize (Buffer::Iterator &i) const {
     i.WriteHtonU32(m_options);

@@ -70,17 +70,21 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator &i) const;
 
-    virtual uint32_t GetSize() {return m_types.size();}
+    virtual uint32_t CountNeighbors() {return m_types.size();}
     virtual void SetOptions(uint32_t opts) {m_options = opts;}
     virtual uint32_t GetOptions() {return m_options;}
-    virtual void AddType(uint8_t type) {m_types.push_back(type);}
     virtual uint8_t GetType(int idx) {return m_types[idx];}
-    virtual void AddInterfaceId(uint32_t id) {m_interfaceIds.push_back(id);}
+    virtual uint16_t GetMetric(int idx) {return m_metrics[idx];}
     virtual uint32_t GetInterfaceId(int idx) {return m_interfaceIds[idx];}
-    virtual void AddNeighborInterfaceId(uint32_t id) {m_neighborInterfaceIds.push_back(id);}
     virtual uint32_t GetNeighborInterfaceId(int idx) {return m_neighborInterfaceIds[idx];}
-    virtual void AddNeighborRouterId(uint32_t id) {m_neighborRouterIds.push_back(id);}
     virtual uint32_t GetNeighborRouterId(int idx) {return m_neighborRouterIds[idx];}
+    virtual void AddNeighbor(uint8_t type, uint16_t metric, uint32_t ifaceId, uint32_t nghIfaceId, uint32_t ngnRtrId) {
+        m_types.push_back(type);
+        m_metrics.push_back(metric);
+        m_interfaceIds.push_back(ifaceId);
+        m_neighborInterfaceIds.push_back(nghIfaceId);
+        m_neighborRouterIds.push_back(ngnRtrId);
+    }
     virtual bool operator== (const OSPFRouterLSABody &other) const {
         return (
             m_options == other.m_options &&

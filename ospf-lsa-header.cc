@@ -21,14 +21,15 @@ uint32_t OSPFLSAHeader::GetSerializedSize () const {
     return 20;
 } 
 void OSPFLSAHeader::Print (std::ostream &os) const {
-    os << "  ## LSAHeader:" << "\n";
-    os << "    age:" << m_age << "\n";
-    os << "    type:" << m_type << "\n";
-    os << "    id:" << m_id << "\n";
-    os << "    advRtr:" << m_advRtr << "\n";
-    os << "    seqNum:" << m_seqNum << "\n";
-    os << "    checksum:" << m_checksum << "\n";
-    os << "    length:" << m_length << "\n";
+    os << "(LSAHeader: [";
+    os << "age:" << m_age << ", ";
+    os << "type:" << m_type << ", ";
+    os << "id:" << m_id << ", ";
+    os << "advRtr:" << m_advRtr << ", ";
+    os << "seqNum:" << m_seqNum << ", ";
+    // os << "checksum:" << m_checksum << ", ";
+    // os << "length:" << m_length;
+    os << " ])";
 } 
 void OSPFLSAHeader::Serialize (Buffer::Iterator &i) const {
     i.WriteHtonU16(m_age);

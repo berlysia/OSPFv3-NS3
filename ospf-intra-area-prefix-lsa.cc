@@ -38,17 +38,18 @@ uint32_t OSPFIntraAreaPrefixLSABody::GetSerializedSize () const {
     return size + m_addressPrefixes.size() * 20;
 } 
 void OSPFIntraAreaPrefixLSABody::Print (std::ostream &os) const {
-    os << "    ### Intra area prefix LSA\n";
-    os << "      refType   : " << m_refType << "\n";
-    os << "      refId     : " << m_refId << "\n";
-    os << "      refAdvRtr : " << m_refAdvRtr << "\n";
-    os << "      #prefixes : " << m_addressPrefixes.size() << "\n";
+    os << "(Intra area prefix LSA: [";
+    os << "refType: " << m_refType << ", ";
+    os << "refId: " << m_refId << ", ";
+    os << "refAdvRtr: " << m_refAdvRtr << ", ";
+    os << "#prefixes: " << m_addressPrefixes.size() << "(";
     for (int idx = 0, l = m_addressPrefixes.size(); idx < l; ++idx) {
-        os << "        metric       : " << m_metrics[idx] << "\n";
-        os << "        prefixOption : " << m_prefixOptions[idx] << "\n";
-        os << "        prefixLength : " << m_prefixLengthes[idx] << "\n";
-        os << "        prefix       : " << m_addressPrefixes[idx] << "\n";
+        os << "[metric: " << m_metrics[idx] << ", ";
+        os << "prefixOption: " << (uint16_t)m_prefixOptions[idx] << ", ";
+        os << "prefixLength: " << (uint16_t)m_prefixLengthes[idx] << ", ";
+        os << "prefix: " << m_addressPrefixes[idx] << "], ";
     }
+    os << ")])";
 } 
 void OSPFIntraAreaPrefixLSABody::Serialize (Buffer::Iterator &i) const {
     uint32_t size = m_addressPrefixes.size();
