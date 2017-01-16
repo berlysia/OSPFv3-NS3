@@ -50,5 +50,10 @@ uint32_t OSPFLSA::Deserialize (Buffer::Iterator &i) {
     return OSPFLSA::GetSerializedSize();
 }
 
+std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa) {
+    lsa.Print(os);
+    return os;
+}
+
 } // namespace ns3
 } // namespace ns3

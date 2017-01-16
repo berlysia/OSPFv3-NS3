@@ -28,6 +28,7 @@ enum Type {
     FULL,
 };
 }
+typedef NeighborStateNS::Type NeighborState;
 
 namespace NeighborEventNS {
 enum Type {
@@ -46,9 +47,10 @@ enum Type {
     LL_DOWN,
 };
 }
-
-typedef NeighborStateNS::Type NeighborState;
 typedef NeighborEventNS::Type NeighborEvent;
+
+std::string ToString ( const NeighborState& value );
+std::string ToString ( const NeighborEvent& value );
 
 class NeighborData {
     typedef uint32_t RouterId;

@@ -103,6 +103,7 @@ public:
         return false;
     }
 };
+std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa);
 
 }
 }

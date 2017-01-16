@@ -9,55 +9,44 @@ NS_OBJECT_ENSURE_REGISTERED (RoutingTable);
 
 RoutingTable::RoutingTable() {}
 RoutingTable::~RoutingTable() {
-    m_table.clear();
+    m_entries.clear();
 }
-bool RoutingTable::LookupRoute(Ipv6Address &dst, Ipv6RoutingTableEntry &entry) {
+bool RoutingTable::LookupRoute(Ipv6Address &dst, Ipv6RoutingTableEntry &ret) {
     NS_LOG_FUNCTION(this << dst);
 
-    if(m_table.empty()){
+    if(m_entries.empty()){
         NS_LOG_LOGIC("Route to " << dst << " not found: table is empty");
         return false;
     }
 
-    RTIterator iter = m_table.find(dst);
-    if(iter == m_table.end()) {
-        NS_LOG_LOGIC("Route to " << dst << " not found");
-        return false;
+    for (auto& entry : m_entries) {
+        if (entry.GetDestNetworkPrefix().IsMatch(dst, entry.GetDest())) {
+            ret = entry;
+            return true;
+        }
     }
 
-    entry = iter->second;
-    NS_LOG_LOGIC("Route to " << dst << " found");
-    return true;
-}
-bool RoutingTable::RemoveRoute(Ipv6Address &dst) {
-    NS_LOG_FUNCTION(this << dst);
-
-    if(m_table.erase(dst) != 0) {
-        NS_LOG_LOGIC("Route deletion successed: " << dst);
-        return true;
-    }
-    NS_LOG_LOGIC("Route deletion failed:" << dst);
+    NS_LOG_LOGIC("Route to " << dst << " not found");
     return false;
 }
+// bool RoutingTable::RemoveRoute(Ipv6Address &dst) {
+//     NS_LOG_FUNCTION(this << dst);
+
+//     NS_LOG_LOGIC("Route deletion failed:" << dst);
+//     return false;
+// }
 bool RoutingTable::AddRoute(Ipv6RoutingTableEntry &entry) {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << entry.GetDest() << entry.GetDestNetworkPrefix());
 
-    // RTIterator result = m_table.insert(std::make_pair(entry.GetDest(), entry));
-    RTIterator result;
+    m_entries.push_back(entry);
     return true;
 }
-bool RoutingTable::Update(Ipv6RoutingTableEntry &entry) {
-    NS_LOG_FUNCTION(this);
+// bool RoutingTable::Update(Ipv6RoutingTableEntry &entry) {
+//     NS_LOG_FUNCTION(this);
 
-    // RTIterator iter = m_table.find(entry.GetDest());
-    // if(iter == m_table.end()) {
-    //     NS_LOG_LOGIC("Route update failed");
-    //     return false;
-    // }
-    // iter->second = rt;
-    NS_LOG_LOGIC("Route update successed");
-    return true;
-}
+//     NS_LOG_LOGIC("Route update successed");
+//     return true;
+// }
 
 }
 }

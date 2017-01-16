@@ -98,10 +98,10 @@ public:
     virtual void SendHelloPacket(uint32_t ifaceIdx);
     virtual void SendDatabaseDescriptionPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0, bool isInit = false);
     virtual void SendLinkStateRequestPacket(uint32_t ifaceIdx, RouterId neighborRouterId = 0);
-    virtual void SendLinkStateUpdatePacket();
+    virtual void SendLinkStateUpdatePacketEntryPoint();
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx);
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, RouterId neighborRouterId);
-    virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, std::vector<OSPFLSA>& lsas, RouterId neighborRouterId = 0);
+    virtual void SendLinkStateUpdatePacketDirect(uint32_t ifaceIdx, std::vector<OSPFLSA>& lsas, RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, OSPFLSAHeader& lsaHeader , RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, std::vector<OSPFLSAHeader>& lsaHeaders , RouterId neighborRouterId = 0);
 
@@ -121,6 +121,7 @@ public:
     virtual void OriginateIntraAreaPrefixLSA(bool forceRefresh = false);
 
     virtual void CalcRoutingTable (bool recalcAll = false);
+    virtual int32_t GetInterfaceForNeighbor (RouterId routerId);
     
     virtual void Start ();
 

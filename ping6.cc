@@ -52,10 +52,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("verbose", "turn on log components", verbose);
   cmd.Parse (argc, argv);
 
-  LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+  // LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
   LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
-  LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
-  LogComponentEnable ("Socket", LOG_LEVEL_ALL);
+  // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
+  LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
   // LogComponentEnable ("Packet", LOG_LEVEL_ALL);
   // LogComponentEnable ("Ipv6Header", LOG_LEVEL_ALL);
   // LogComponentEnable ("Ipv6Address", LOG_LEVEL_ALL);
@@ -149,23 +149,27 @@ int main (int argc, char **argv)
   ping6.SetAttribute ("Interval", TimeValue (interPacketInterval));
   ping6.SetAttribute ("PacketSize", UintegerValue (packetSize));
   ApplicationContainer apps = ping6.Install (ns.Get (0));
-  apps.Start (Seconds (2.0));
-  apps.Stop (Seconds (10.0));
+  apps.Start (Seconds (20.0));
+  apps.Stop (Seconds (60.0));
 
   AsciiTraceHelper ascii;
   p2p.EnableAsciiAll (ascii.CreateFileStream ("ping6.tr"));
   p2p.EnablePcapAll (std::string ("ping6"), true);
 
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (10), ns.Get(0), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (10), ns.Get(1), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (10), ns.Get(2), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (10), ns.Get(3), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(0), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(1), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(2), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(3), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(0), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(1), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(2), routingStream);
+  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(3), routingStream);
 
   NS_LOG_INFO ("Run Simulation.");
-  Simulator::Stop (Seconds(12));
+  Simulator::Stop (Seconds(62));
   Simulator::Run ();
-  Simulator::Destroy ();
+  // Simulator::Destroy ();
   NS_LOG_INFO ("Done.");
 }
 

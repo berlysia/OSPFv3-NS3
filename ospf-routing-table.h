@@ -6,7 +6,7 @@
 #include "ns3/output-stream-wrapper.h"
 #include "ns3/ipv6-address.h"
 #include "ns3/ipv6-routing-table-entry.h"
-#include <map>
+#include <vector>
 
 // OSPFv2 11 The Routing Table Structure
 // https://tools.ietf.org/html/rfc2328#page-107
@@ -26,19 +26,17 @@ namespace ospf {
             return tid;
         }
         bool AddRoute(Ipv6RoutingTableEntry &entry);
-        bool RemoveRoute(Ipv6Address &dst);
+        // bool RemoveRoute(Ipv6Address &dst);
         bool LookupRoute(Ipv6Address &dst, Ipv6RoutingTableEntry &entry);
-        bool Update(Ipv6RoutingTableEntry &entry);
+        // bool Update(Ipv6RoutingTableEntry &entry);
         void Clear() {
-            m_table.clear();
+            m_entries.clear();
         }
-        std::map<Ipv6Address, Ipv6RoutingTableEntry> GetTable() {
-            return m_table;
+        std::vector<Ipv6RoutingTableEntry>& GetCollection() {
+            return m_entries;
         }
     private:
-        std::map<Ipv6Address, Ipv6RoutingTableEntry> m_table;
-        typedef std::map<Ipv6Address, Ipv6RoutingTableEntry>::iterator RTIterator;
-        typedef std::map<Ipv6Address, Ipv6RoutingTableEntry>::const_iterator RTCIterator;
+        std::vector<Ipv6RoutingTableEntry> m_entries;
     };
 }
 }

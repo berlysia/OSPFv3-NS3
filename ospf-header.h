@@ -32,6 +32,13 @@ protected:
 public:
     OSPFHeader () {
         m_version = 3;
+        m_type = 0;
+        m_packetLength = 0;
+        m_routerId = 0;
+        m_areaId = 0;
+        m_checksum = 0;
+        m_instanceId = 0;
+        m_interfaceId = 0;
     };
     virtual ~OSPFHeader() {};
 

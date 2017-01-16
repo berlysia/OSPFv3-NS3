@@ -49,6 +49,10 @@ enum Type {
 };
 }
 typedef InterfaceEventNS::Type InterfaceEvent;
+
+std::string ToString (const InterfaceType& type );
+std::string ToString (const InterfaceState& type );
+std::string ToString (const InterfaceEvent& type );
     
 class InterfaceData {
     typedef uint32_t RouterId;
@@ -84,7 +88,7 @@ public:
         // m_ifaceMask;
         m_areaId = 0;
         m_helloInterval = Seconds(10.0);
-        m_routerDeadInterval = Seconds(10.0);
+        m_routerDeadInterval = Seconds(40.0);
         m_ifaceTransDelay = 1;
         // m_routerPriority;
         m_designatedRouterId = 0;
@@ -101,7 +105,7 @@ public:
     void ResetInstance () {
         m_areaId = 0;
         m_helloInterval = Seconds(10.0);
-        m_routerDeadInterval = Seconds(10.0);
+        m_routerDeadInterval = Seconds(40.0);
         m_ifaceTransDelay = 1;
         m_designatedRouterId = 0;
         m_backupDesignatedRouterId = 0;
@@ -117,6 +121,10 @@ public:
     }
     bool IsType(InterfaceType type) const {
         return m_type == type;
+    }
+
+    InterfaceState GetState () {
+        return m_state;
     }
 
     void SetState(InterfaceState state) {
@@ -152,6 +160,10 @@ public:
 
     Time& GetRouterDeadInterval () {
         return m_routerDeadInterval;
+    }
+
+    Time& GetRxmtInterval () {
+        return m_rxmtInterval;
     }
 
     bool IsIndex(uint32_t ifaceIdx) const {
