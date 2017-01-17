@@ -19,7 +19,7 @@ TypeId OSPFLinkStateAck::GetInstanceTypeId () const {
 }
 
 uint32_t OSPFLinkStateAck::GetSerializedSize () const {
-    return OSPFHeader::GetSerializedSize() + 4 + m_lsaHeaders.size() * 20;
+    return OSPFHeader::GetSerializedSize() + m_lsaHeaders.size() * 20;
 } 
 void OSPFLinkStateAck::Print (std::ostream &os) const {
     os << "(";
@@ -33,20 +33,31 @@ void OSPFLinkStateAck::Print (std::ostream &os) const {
     os << "])";
 } 
 void OSPFLinkStateAck::Serialize (Buffer::Iterator start) const {
+/*
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +-                                                             -+
+      |                                                               |
+      +-                        An LSA Header                        -+
+      |                                                               |
+      +-                                                             -+
+      |                                                               |
+      +-                                                             -+
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                              ...                              |
+*/
     OSPFHeader::Serialize(start);
     start.Next(OSPFHeader::GetSerializedSize());
 
-    uint32_t size = m_lsaHeaders.size();
-    start.WriteHtonU32(size);
-    for(int idx = 0, l = size; idx < l; ++idx) {
+    for(int idx = 0, l = m_lsaHeaders.size(); idx < l; ++idx) {
         m_lsaHeaders[idx].Serialize(start);
-        m_lsaHeaders[idx].GetSerializedSize();
     }
 }
 uint32_t OSPFLinkStateAck::Deserialize (Buffer::Iterator start) {
     start.Next(OSPFHeader::Deserialize(start));
     
-    uint32_t size = start.ReadNtohU32();
+    uint32_t size = (m_packetLength - OSPFHeader::GetSerializedSize()) / 20;
     m_lsaHeaders.resize(size);
     for(int idx = 0, l = size; idx < l; ++idx) {
         m_lsaHeaders[idx].Deserialize(start);

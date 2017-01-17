@@ -37,6 +37,16 @@ void OSPFLinkStateUpdate::Print (std::ostream &os) const {
     os << ")";
 } 
 void OSPFLinkStateUpdate::Serialize (Buffer::Iterator start) const {
+/*
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                           # LSAs                              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +-                                                            +-+
+      |                            LSAs                               |
+      +-                                                            +-+
+      |                             ...                               |
+*/
     OSPFHeader::Serialize(start);
     start.Next(OSPFHeader::GetSerializedSize());
 
@@ -54,7 +64,6 @@ uint32_t OSPFLinkStateUpdate::Deserialize (Buffer::Iterator start) {
     uint32_t size = start.ReadNtohU32();
     m_lsas.resize(size);
     for(int idx = 0, l = size; idx < l; ++idx) {
-        // start.Next(m_lsas[idx].Deserialize(start));
         m_lsas[idx].Deserialize(start);
     }
 

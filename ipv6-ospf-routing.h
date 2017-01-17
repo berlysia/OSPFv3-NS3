@@ -101,6 +101,7 @@ public:
     virtual void SendLinkStateUpdatePacketEntryPoint();
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx);
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, RouterId neighborRouterId);
+    virtual void SendLinkStateUpdatePacketDirectAsap(uint32_t ifaceIdx, OSPFLSA& lsa, RouterId neighborRouterId = 0);
     virtual void SendLinkStateUpdatePacketDirect(uint32_t ifaceIdx, std::vector<OSPFLSA>& lsas, RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, OSPFLSAHeader& lsaHeader , RouterId neighborRouterId = 0);
     virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, std::vector<OSPFLSAHeader>& lsaHeaders , RouterId neighborRouterId = 0);
@@ -110,8 +111,8 @@ public:
     virtual bool IsNeighborToBeAdjacent(uint32_t ifaceIdx, RouterId neighborRouterId);
     virtual void RemoveFromAllRxmtList(OSPFLinkStateIdentifier& id);
     virtual Time& GetLastLSUSentTime ();
-    virtual void AssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId senderRouterId);
-    virtual void DirectAssignFloodingDestination (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId neighborRouterId);
+    virtual void AppendToRxmtList (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId senderRouterId, bool sendAsap = false);
+    virtual void DirectAppendToRxmtList (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId neighborRouterId, bool sendAsap = false);
 
     virtual uint16_t CalcMetricForInterface (uint32_t ifaceIdx);
 

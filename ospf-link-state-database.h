@@ -65,7 +65,7 @@ public:
         for (const OSPFLinkStateIdentifier& id : id_set) {
             ret.push_back(Get(id));
         }
-        return std::move(ret);
+        return ret;
     }
 
     void GetSummary (std::vector<OSPFLSAHeader>& summary, std::vector<OSPFLSA>& rxmt) {

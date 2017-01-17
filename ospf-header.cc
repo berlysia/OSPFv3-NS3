@@ -23,7 +23,7 @@ TypeId OSPFHeader::GetInstanceTypeId () const {
 }
 
 uint32_t OSPFHeader::GetSerializedSize () const {
-    return 19;
+    return 16;
 } 
 void OSPFHeader::Print (std::ostream &os) const {
     os << "(";
@@ -33,18 +33,30 @@ void OSPFHeader::Print (std::ostream &os) const {
     os << "router: " << m_routerId << ", ";
     os << "area: " << m_areaId << ", ";
     // os << "checksum: " << m_checksum << ", ";
-    os << "instanceId: " << (int)m_instanceId << ", ";
-    os << "interfaceId: " << (int)m_interfaceId << ")";
+    os << "instanceId: " << (int)m_instanceId << ")";
 } 
 void OSPFHeader::Serialize (Buffer::Iterator start) const {
+/*
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |      3        |       1       |         Packet Length         |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                         Router ID                             |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                          Area ID                              |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |          Checksum             | Instance ID   |     0         |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
     start.WriteU8(m_version);
     start.WriteU8(m_type);
-    start.WriteHtonU16(m_packetLength);
+    start.WriteHtonU16(GetSerializedSize());
     start.WriteHtonU32(m_routerId);
     start.WriteHtonU32(m_areaId);
-    start.WriteHtonU16(m_checksum);
+    start.WriteHtonU16(0);
     start.WriteU8(m_instanceId);
-    start.WriteHtonU32(m_interfaceId);
+    start.WriteU8(0);
 }
 uint32_t OSPFHeader::Deserialize (Buffer::Iterator start) {
     m_version = start.ReadU8();
@@ -52,9 +64,9 @@ uint32_t OSPFHeader::Deserialize (Buffer::Iterator start) {
     m_packetLength = start.ReadNtohU16();
     m_routerId = start.ReadNtohU32();
     m_areaId = start.ReadNtohU32();
-    m_checksum = start.ReadNtohU16();
+    start.ReadNtohU16();
     m_instanceId = start.ReadU8();
-    m_interfaceId = start.ReadNtohU32();
+    start.ReadU8();
     return OSPFHeader::GetSerializedSize();
 }
 

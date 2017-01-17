@@ -28,7 +28,7 @@ public:
     static TypeId GetTypeId();
 
     virtual TypeId GetInstanceId () const;
-    virtual uint32_t Deserialize (Buffer::Iterator &i);
+    virtual uint32_t Deserialize (Buffer::Iterator &i, uint32_t remainBytes);
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator &i) const;

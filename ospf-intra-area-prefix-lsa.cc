@@ -52,6 +52,27 @@ void OSPFIntraAreaPrefixLSABody::Print (std::ostream &os) const {
     os << ")])";
 } 
 void OSPFIntraAreaPrefixLSABody::Serialize (Buffer::Iterator &i) const {
+/*
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |         # Prefixes            |     Referenced LS Type        |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                  Referenced Link State ID                     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |               Referenced Advertising Router                   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  PrefixLength | PrefixOptions |          Metric               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                       Address Prefix                          |
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  PrefixLength | PrefixOptions |          Metric               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                       Address Prefix                          |
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
     uint32_t size = m_addressPrefixes.size();
     i.WriteHtonU16((uint16_t)size);
     i.WriteHtonU16(m_refType);
@@ -78,7 +99,7 @@ void OSPFIntraAreaPrefixLSABody::Serialize (Buffer::Iterator &i) const {
         }
     }
 }
-uint32_t OSPFIntraAreaPrefixLSABody::Deserialize (Buffer::Iterator &i) {
+uint32_t OSPFIntraAreaPrefixLSABody::Deserialize (Buffer::Iterator &i, uint32_t remainBytes) {
     uint16_t size = i.ReadNtohU16();
     m_refType = i.ReadNtohU16();
     m_refId = i.ReadNtohU32();

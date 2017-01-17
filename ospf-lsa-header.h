@@ -7,6 +7,7 @@
 #include "ospf-lsa-identifier.h"
 #include "ospf-constants.h"
 #include <cstdlib>
+#include <iostream>
 
 /*
 
@@ -76,6 +77,7 @@ public:
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator &i) const;
+    virtual void Serialize (Buffer::Iterator &i, uint32_t bodySize) const;
 
     virtual void SetAge(uint16_t age) {m_age = age;}
     virtual uint16_t GetAge() {return m_age;}
@@ -105,9 +107,9 @@ public:
             m_type == other.m_type &&
             m_id == other.m_id &&
             m_advRtr == other.m_advRtr &&
-            m_seqNum == other.m_seqNum &&
-            m_checksum == other.m_checksum &&
-            m_length == other.m_length
+            m_seqNum == other.m_seqNum
+            // m_checksum == other.m_checksum
+            // m_length == other.m_length
         );
     }
     bool operator== (const OSPFLinkStateIdentifier &id) const {
@@ -117,8 +119,8 @@ public:
     bool IsMoreRecentThan (const OSPFLSAHeader &other) const {
         if (m_seqNum > other.m_seqNum) return true;
         if (m_seqNum < other.m_seqNum) return false;
-        if (m_checksum > other.m_checksum) return true;
-        if (m_checksum < other.m_checksum) return false;
+        // if (m_checksum > other.m_checksum) return true;
+        // if (m_checksum < other.m_checksum) return false;
         if (m_age == g_maxAge) return true;
         if (other.m_age == g_maxAge) return false;
         if (abs(m_age - other.m_age) > g_maxAgeDiff) {
@@ -150,6 +152,8 @@ public:
         return m_age == g_maxAge && m_seqNum == g_maxSeqNum;
     }
 };
+std::ostream& operator<< (std::ostream& os, const OSPFLSAHeader& lsaHdr);
+std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSAHeader>& lsaHdrs);
 
 }
 }

@@ -30,7 +30,7 @@ public:
         m_body = other.m_body;
     }
     ~OSPFLSA () {
-        // std::cout << "OSPFLSA::dtor - " << this << "( " << m_header << ", " << m_body << " )" << std::endl;
+        // std::cout << "\nOSPFLSA::dtor - " << this << " : " << GetIdentifier() << "( " << m_header << ", " << m_body << " )" << std::endl;
     };
 
     static TypeId GetTypeId();
@@ -104,6 +104,7 @@ public:
     }
 };
 std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa);
+std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSA>& lsas);
 
 }
 }

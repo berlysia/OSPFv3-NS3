@@ -27,12 +27,13 @@ TypeId OSPFLinkLSABody::GetInstanceId () const {
 }
 
 uint32_t OSPFLinkLSABody::GetSerializedSize () const {
-    uint32_t size = 2 + 2 + 16 + 4;
+    // uint32_t size = 24;
     // for(int idx = 0, l = m_addressPrefixes.size(); idx < l; ++idx) {
     //     uint8_t length = GetPrefixLength(idx);
     //     size += 2 + ((length + 31) / 32) * 4;
     // }
-    return size + m_addressPrefixes.size() * 18;
+    // return size;
+    return 24 + m_addressPrefixes.size() * 18;
 } 
 void OSPFLinkLSABody::Print (std::ostream &os) const {
     os << "(Link LSA: [";
@@ -49,8 +50,37 @@ void OSPFLinkLSABody::Print (std::ostream &os) const {
     os << ")])";
 } 
 void OSPFLinkLSABody::Serialize (Buffer::Iterator &i) const {
-    i.WriteHtonU16(m_rtrPriority);
-    i.WriteHtonU16(m_options);
+/*
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | Rtr Priority  |                Options                        |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +-                                                             -+
+      |                                                               |
+      +-                Link-local Interface Address                 -+
+      |                                                               |
+      +-                                                             -+
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         # prefixes                            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  PrefixLength | PrefixOptions |             0                 |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                        Address Prefix                         |
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  PrefixLength | PrefixOptions |             0                 |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                        Address Prefix                         |
+      |                             ...                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
+    i.WriteHtonU32(m_options);
+    i.Prev(4);
+    i.WriteU8(m_rtrPriority);
+    i.Next(3);
 
     uint8_t buf[16];
     m_addr.GetBytes(buf);
@@ -78,7 +108,7 @@ void OSPFLinkLSABody::Serialize (Buffer::Iterator &i) const {
         }
     }
 }
-uint32_t OSPFLinkLSABody::Deserialize (Buffer::Iterator &i) {
+uint32_t OSPFLinkLSABody::Deserialize (Buffer::Iterator &i, uint32_t remainBytes) {
     m_rtrPriority = i.ReadNtohU16();
     m_options = i.ReadNtohU16();
 

@@ -48,23 +48,41 @@ void OSPFDatabaseDescription::Print (std::ostream &os) const {
     }
 } 
 void OSPFDatabaseDescription::Serialize (Buffer::Iterator start) const {
+/*
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--+
+      |       0       |               Options                          |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--+
+      |        Interface MTU          |      0        |0|0|0|0|0|I|M|MS|
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--+
+      |                    DD sequence number                          |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--+
+      |                                                                |
+      +-                                                              -+
+      |                                                                |
+      +-                     An LSA Header                            -+
+      |                                                                |
+      +-                                                              -+
+      |                                                                |
+      +-                                                              -+
+      |                                                                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--+
+      |                       ...                                      |
+*/
     OSPFHeader::Serialize(start);
     start.Next(OSPFHeader::GetSerializedSize());
 
     start.WriteHtonU32(m_options);
     start.WriteHtonU16(m_mtu);
-    start.WriteU8(
+    start.WriteHtonU16(
         (m_initFlag << 2) |
         (m_moreFlag << 1) |
         m_masterFlag
     );
     start.WriteHtonU32(m_ddSeqNum);
-    uint32_t size = m_lsaHeaders.size();
-    start.WriteHtonU32(size);
-    for(int idx = 0, l = size; idx < l; ++idx) {
+    // uint32_t size = m_lsaHeaders.size();
+    // start.WriteHtonU32(size);
+    for(int idx = 0, l = m_lsaHeaders.size(); idx < l; ++idx) {
         m_lsaHeaders[idx].Serialize(start);
-        // start.Next(m_lsaHeaders[idx].GetSerializedSize());
-        m_lsaHeaders[idx].GetSerializedSize();
     }
 }
 uint32_t OSPFDatabaseDescription::Deserialize (Buffer::Iterator start) {
@@ -72,16 +90,15 @@ uint32_t OSPFDatabaseDescription::Deserialize (Buffer::Iterator start) {
 
     m_options = start.ReadNtohU32();
     m_mtu = start.ReadNtohU16();
-    uint8_t buff = start.ReadU8();
+    uint8_t buff = start.ReadNtohU16();
     m_initFlag = (buff >> 2) & 0x1;
     m_moreFlag = (buff >> 1) & 0x1;
     m_masterFlag = buff & 0x1;
     m_ddSeqNum = start.ReadNtohU32();
     
-    uint32_t size = start.ReadNtohU32();
+    uint32_t size = (m_packetLength - GetSerializedSize()) / 20;
     m_lsaHeaders.resize(size);
     for(int idx = 0, l = size; idx < l; ++idx) {
-        // start.Next(m_lsaHeaders[idx].Deserialize(start));
         m_lsaHeaders[idx].Deserialize(start);
     }
 

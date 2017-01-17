@@ -2,6 +2,7 @@
 #define OSPF_LSA_BODY_H
 
 #include "ospf-lsa-header.h"
+#include <iostream>
 
 using namespace ns3;
 
@@ -21,7 +22,7 @@ public:
     };
 
     virtual TypeId GetInstanceId (void) const {return GetTypeId();};
-    virtual uint32_t Deserialize (Buffer::Iterator &i) {return 0;};
+    virtual uint32_t Deserialize (Buffer::Iterator &i, uint32_t remainBytes) {return 0;};
     virtual uint32_t GetSerializedSize () const {return 0;}; 
     virtual void Print (std::ostream &os) const {}; 
     virtual void Serialize (Buffer::Iterator &i) const {};

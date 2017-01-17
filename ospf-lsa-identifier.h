@@ -2,6 +2,7 @@
 #define OSPF_LS_IDENTIFIER_H
 
 #include <set>
+#include <iostream>
 
 using namespace ns3;
 
@@ -37,7 +38,7 @@ struct OSPFLinkStateIdentifier {
         );
     }
 };
-
+std::ostream& operator<< (std::ostream& os, const OSPFLinkStateIdentifier& id);
 }
 }
 

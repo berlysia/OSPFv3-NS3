@@ -24,14 +24,20 @@ void OSPFLSA::Print (std::ostream &os) const {
     if (m_body) m_body->Print(os);
 } 
 void OSPFLSA::Serialize (Buffer::Iterator &i) const {
+    if (m_header && m_body) {
+        m_header->Serialize(i, m_body->GetSerializedSize());
+        m_body->Serialize(i);
+        return;
+    }
+
     if (m_header) {
         m_header->Serialize(i);
-        // i.Next(m_header->GetSerializedSize());
+        return;
     }
 
     if (m_body) {
         m_body->Serialize(i);
-        // i.Next(m_body->GetSerializedSize());
+        return;
     }
 }
 uint32_t OSPFLSA::Deserialize (Buffer::Iterator &i) {
@@ -45,13 +51,22 @@ uint32_t OSPFLSA::Deserialize (Buffer::Iterator &i) {
     CreateBody(type);
 
     // i.Next(m_body->Deserialize(i));
-    m_body->Deserialize(i);
+    m_body->Deserialize(i, m_header->GetLength() - m_header->GetSerializedSize());
 
     return OSPFLSA::GetSerializedSize();
 }
 
 std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa) {
     lsa.Print(os);
+    return os;
+}
+std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSA>& lsas) {
+    os << "#" << lsas.size() << " (";
+    for (auto& item : lsas) {
+        item.Print(os);
+        os << ", ";
+    }
+    os << ")";
     return os;
 }
 

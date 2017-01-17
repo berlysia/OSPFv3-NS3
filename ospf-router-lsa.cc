@@ -28,7 +28,7 @@ TypeId OSPFRouterLSABody::GetInstanceId () const {
 }
 
 uint32_t OSPFRouterLSABody::GetSerializedSize () const {
-    return 4 + 4 + 15 * m_types.size();
+    return 4 + 16 * m_types.size();
 } 
 void OSPFRouterLSABody::Print (std::ostream &os) const {
     os << "(Router LSA: [";
@@ -45,31 +45,51 @@ void OSPFRouterLSABody::Print (std::ostream &os) const {
     os << ")])";
 } 
 void OSPFRouterLSABody::Serialize (Buffer::Iterator &i) const {
+/*
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  0  |Nt|x|V|E|B|            Options                            |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     Type       |       0       |          Metric               |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                      Interface ID                              |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                   Neighbor Interface ID                        |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    Neighbor Router ID                          |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                             ...                                |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     Type       |       0       |          Metric               |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                      Interface ID                              |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                   Neighbor Interface ID                        |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    Neighbor Router ID                          |
+      +-+-+-+--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                             ...                                |
+*/
     i.WriteHtonU32(m_options);
-    uint32_t size = m_types.size();
-    i.WriteHtonU32(size);
-    for (int idx = 0, l = size; idx < l; ++idx) {
+    for (int idx = 0, l = m_types.size(); idx < l; ++idx) {
         i.WriteU8(m_types[idx]);
+        i.WriteU8(0);
         i.WriteHtonU16(m_metrics[idx]);
         i.WriteHtonU32(m_interfaceIds[idx]);
         i.WriteHtonU32(m_neighborInterfaceIds[idx]);
         i.WriteHtonU32(m_neighborRouterIds[idx]);
     }
 }
-uint32_t OSPFRouterLSABody::Deserialize (Buffer::Iterator &i) {
+uint32_t OSPFRouterLSABody::Deserialize (Buffer::Iterator &i, uint32_t remainBytes) {
     m_options = i.ReadNtohU32();
-    uint32_t size = i.ReadNtohU32();
-    m_types.resize(size);
-    m_metrics.resize(size);
-    m_interfaceIds.resize(size);
-    m_neighborInterfaceIds.resize(size);
-    m_neighborRouterIds.resize(size);
+
+    uint32_t size = (remainBytes - 4) / 16;
     for (int idx = 0, l = size; idx < l; ++idx) {
-        m_types[idx] = i.ReadU8();
-        m_metrics[idx] = i.ReadNtohU16();
-        m_interfaceIds[idx] = i.ReadNtohU32();
-        m_neighborInterfaceIds[idx] = i.ReadNtohU32();
-        m_neighborRouterIds[idx] = i.ReadNtohU32();
+        m_types.push_back(i.ReadU8());
+        i.ReadU8();
+        m_metrics.push_back(i.ReadNtohU16());
+        m_interfaceIds.push_back(i.ReadNtohU32());
+        m_neighborInterfaceIds.push_back(i.ReadNtohU32());
+        m_neighborRouterIds.push_back(i.ReadNtohU32());
     }
     return OSPFRouterLSABody::GetSerializedSize();
 }

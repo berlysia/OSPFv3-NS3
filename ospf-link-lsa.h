@@ -55,8 +55,8 @@ namespace ospf {
 
 class OSPFLinkLSABody : public OSPFLSABody {
 private:
-    uint16_t m_rtrPriority;
-    uint16_t m_options;
+    uint8_t m_rtrPriority;
+    uint32_t m_options;
     Ipv6Address m_addr;
     std::vector<uint8_t> m_prefixOptions;
     std::vector<uint8_t> m_prefixLengthes;
@@ -69,15 +69,15 @@ public:
     static TypeId GetTypeId();
 
     virtual TypeId GetInstanceId () const;
-    virtual uint32_t Deserialize (Buffer::Iterator &i);
+    virtual uint32_t Deserialize (Buffer::Iterator &i, uint32_t remainBytes);
     virtual uint32_t GetSerializedSize () const; 
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator &i) const;
 
-    virtual uint16_t GetRtrPriority() const {return m_rtrPriority;}
-    virtual void SetRtrPriority(uint16_t prio) {m_rtrPriority = prio;}
-    virtual uint16_t GetOptions() const {return m_options;}
-    virtual void SetOptions(uint16_t opt) {m_options = opt;}
+    virtual uint8_t GetRtrPriority() const {return m_rtrPriority;}
+    virtual void SetRtrPriority(uint8_t prio) {m_rtrPriority = prio;}
+    virtual uint32_t GetOptions() const {return m_options;}
+    virtual void SetOptions(uint32_t opt) {m_options = opt;}
     virtual const Ipv6Address& GetLinkLocalAddress() const {return m_addr;}
     virtual void SetLinkLocalAddress(Ipv6Address &addr) {m_addr = addr;}
     virtual uint8_t GetPrefixOption(uint32_t idx) const {return m_prefixOptions[idx];}

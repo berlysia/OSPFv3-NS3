@@ -25,9 +25,8 @@ protected:
     uint16_t m_packetLength;
     RouterId m_routerId;
     uint32_t m_areaId;
-    uint16_t m_checksum;
+    // uint16_t m_checksum;
     uint8_t m_instanceId;
-    uint32_t m_interfaceId;
 
 public:
     OSPFHeader () {
@@ -36,9 +35,8 @@ public:
         m_packetLength = 0;
         m_routerId = 0;
         m_areaId = 0;
-        m_checksum = 0;
+        // m_checksum = 0;
         m_instanceId = 0;
-        m_interfaceId = 0;
     };
     virtual ~OSPFHeader() {};
 
@@ -55,28 +53,25 @@ public:
     uint8_t GetVersion() const {return m_version;}
     void SetType(uint8_t type) {m_type = type;}
     uint8_t GetType() const {return m_type;}
-    void SetPacketLength(uint16_t packetLength) {m_packetLength = packetLength;}
+    // void SetPacketLength(uint16_t packetLength) {m_packetLength = packetLength;}
     uint16_t GetPacketLength() const {return m_packetLength;}
     void SetAreaId(uint8_t areaId) {m_areaId = areaId;}
     uint8_t GetAreaId() const {return m_areaId;}
     void SetRouterId(RouterId routerId) {m_routerId = routerId;}
     RouterId GetRouterId() const {return m_routerId;}
-    void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
-    uint16_t GetChecksum() const {return m_checksum;}
+    // void SetChecksum(uint16_t checksum) {m_checksum = checksum;}
+    // uint16_t GetChecksum() const {return m_checksum;}
     void SetInstanceId(uint8_t instanceId) {m_instanceId = instanceId;}
     uint8_t GetInstanceId() const {return m_instanceId;}
-    void SetInterfaceId(uint32_t interfaceId) {m_interfaceId = interfaceId;}
-    uint32_t GetInterfaceId() const {return m_interfaceId;}
     bool operator== (const OSPFHeader &other) const {
         return (
             m_version == other.m_version &&
             m_type == other.m_type &&
-            m_packetLength == other.m_packetLength &&
+            // m_packetLength == other.m_packetLength &&
             m_routerId == other.m_routerId &&
             m_areaId == other.m_areaId &&
-            m_checksum == other.m_checksum &&
-            m_instanceId == other.m_instanceId &&
-            m_interfaceId == other.m_interfaceId
+            // m_checksum == other.m_checksum &&
+            m_instanceId == other.m_instanceId
         );
     }
 };

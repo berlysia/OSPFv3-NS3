@@ -13,6 +13,7 @@ namespace ospf {
 class OSPFHello : public OSPFHeader {
 private:
     typedef uint32_t RouterId;
+    uint32_t m_interfaceId;
     uint8_t m_routerPriority;
     uint32_t m_options;
     uint16_t m_helloInterval;
@@ -36,6 +37,8 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator start) const;
 
+    void SetInterfaceId(uint32_t interfaceId) {m_interfaceId = interfaceId;}
+    uint32_t GetInterfaceId() const {return m_interfaceId;}
     void SetRouterPriority(uint8_t routerPriority) {m_routerPriority = routerPriority;}
     uint8_t GetRouterPriority() {return m_routerPriority;}
     void SetOptions(uint32_t options) {m_options = options;}
@@ -56,6 +59,7 @@ public:
         
         return (
             sup == oth &&
+            m_interfaceId == other.m_interfaceId &&
             m_routerPriority == other.m_routerPriority &&
             m_options == other.m_options &&
             m_helloInterval == other.m_helloInterval &&

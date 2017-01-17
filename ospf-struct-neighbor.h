@@ -209,19 +209,31 @@ public:
         return ret;
     }
 
-    void AddRxmtList(OSPFLSA lsa) {
+    void AddRxmtList(OSPFLSA& lsa) {
         m_lsRxmtList.push_back(lsa);
     }
 
     bool HasInRxmtList (OSPFLinkStateIdentifier &id) {
         for (OSPFLSA& item : m_lsRxmtList) {
             // ここにあるLSAは中身が入っているはず
-            if (*item.GetHeader() == id) return true;
+            if (*item.GetHeader() == id) {
+                return true;
+            }
         }
         return false;
     }
 
-    void RemoveFromRxmtList(OSPFLinkStateIdentifier &id) {
+    OSPFLSA* GetFromRxmtList (OSPFLinkStateIdentifier &id) {
+        for (OSPFLSA& item : m_lsRxmtList) {
+            // ここにあるLSAは中身が入っているはず
+            if (*item.GetHeader() == id) {
+                return &item;
+            }
+        }
+        return 0;
+    }
+
+    void RemoveFromRxmtList(OSPFLinkStateIdentifier id) {
         m_lsRxmtList.erase(std::remove(m_lsRxmtList.begin(), m_lsRxmtList.end(), id), m_lsRxmtList.end());
     }
 
@@ -265,7 +277,10 @@ public:
         m_lsdbSummaryList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
     }
 
-    std::vector<OSPFLSAHeader> GetSummary (uint32_t maxBytes) {
+    uint32_t GetSummaryListSize () {
+        return m_lsdbSummaryList.size();
+    }
+    std::vector<OSPFLSAHeader> GetSummaryList (uint32_t maxBytes) {
         std::vector<OSPFLSAHeader> ret;
         for (int i = maxBytes / 20; i && !m_lsdbSummaryList.empty(); --i) {
             ret.push_back(m_lsdbSummaryList.back());
