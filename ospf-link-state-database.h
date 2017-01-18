@@ -13,7 +13,7 @@ namespace ns3 {
 namespace ospf {
 
 class OSPFLSDB {
-    std::map<OSPFLinkStateIdentifier, OSPFLSA> m_db;
+    std::map<OSPFLinkStateIdentifier, Ptr<OSPFLSA>> m_db;
     std::map<OSPFLinkStateIdentifier, Time> m_addedTime;
     std::map<OSPFLinkStateIdentifier, uint16_t> m_addedAge;
 
@@ -28,11 +28,15 @@ public:
         }
     }
 
-    void Add(OSPFLSA& lsa) {
-        OSPFLinkStateIdentifier id = lsa.GetIdentifier();
+    std::map<OSPFLinkStateIdentifier, Ptr<OSPFLSA>>& GetTable () {
+        return m_db;
+    }
+
+    void Add(Ptr<OSPFLSA> lsa) {
+        OSPFLinkStateIdentifier id = lsa->GetIdentifier();
         m_db[id] = lsa;
         m_addedTime[id] = ns3::Now();
-        m_addedAge[id] = lsa.GetHeader()->GetAge();
+        m_addedAge[id] = lsa->GetHeader()->GetAge();
     }
 
     bool DetectMaxAge(OSPFLinkStateIdentifier id) {
@@ -47,8 +51,8 @@ public:
         return (uint32_t)(ns3::Now() - m_addedTime[id]).ToInteger(Time::S) + m_addedAge[id];
     }
 
-    OSPFLSA& Get(const OSPFLinkStateIdentifier& id) {
-        m_db[id].GetHeader()->SetAge(std::min(CalcAge(id), g_maxAge));
+    Ptr<OSPFLSA> Get(const OSPFLinkStateIdentifier& id) {
+        m_db[id]->GetHeader()->SetAge(std::min(CalcAge(id), g_maxAge));
         return m_db[id];
     }
 
@@ -60,18 +64,18 @@ public:
         return m_addedTime[id] + g_minLsArrival <= Now();
     }
 
-    std::vector<OSPFLSA> Aggregate(std::set<OSPFLinkStateIdentifier> id_set) {
-        std::vector<OSPFLSA> ret;
+    std::vector<Ptr<OSPFLSA> > Aggregate(std::set<OSPFLinkStateIdentifier> id_set) {
+        std::vector<Ptr<OSPFLSA> > ret;
         for (const OSPFLinkStateIdentifier& id : id_set) {
             ret.push_back(Get(id));
         }
         return ret;
     }
 
-    void GetSummary (std::vector<OSPFLSAHeader>& summary, std::vector<OSPFLSA>& rxmt) {
+    void GetSummary (std::vector<Ptr<OSPFLSAHeader> >& summary, std::vector<Ptr<OSPFLSA> >& rxmt) {
         for (auto& kv : m_db) {
-            if (kv.second.GetHeader()->IsASScope()) continue;
-            summary.push_back(*kv.second.GetHeader());
+            if (kv.second->GetHeader()->IsASScope()) continue;
+            summary.push_back(kv.second->GetHeader());
             if (DetectMaxAge(kv.first)) {
                 rxmt.push_back(kv.second);
             }

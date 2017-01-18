@@ -48,12 +48,14 @@ NS_LOG_COMPONENT_DEFINE ("Ping6Example");
 int main (int argc, char **argv)
 {
   bool verbose = false;
+  int nodes = 2;
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "turn on log components", verbose);
+  cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
 
-  // LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+  LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
   LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
   // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
   // LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
@@ -77,12 +79,14 @@ int main (int argc, char **argv)
 
   NS_LOG_INFO ("Create nodes.");
   NodeContainer ns;
-  ns.Create(4);
+  int connections = nodes - 1;
+  ns.Create(nodes);
 
   // create p2p connections
-  NodeContainer nc01(ns.Get(0), ns.Get(1));
-  // NodeContainer nc12(ns.Get(1), ns.Get(2));
-  // NodeContainer nc23(ns.Get(2), ns.Get(3));
+  std::vector<NodeContainer> nc;
+  for (int i = 0, l = connections; i < l; ++i) {
+    nc.push_back(NodeContainer(ns.Get(i), ns.Get(i+1)));
+  }
 
   /* Install IPv4/IPv6 stack */
   InternetStackHelper internetv6;
@@ -93,30 +97,30 @@ int main (int argc, char **argv)
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute ("DataRate", DataRateValue (5000000));
   p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
-  NetDeviceContainer d01 = p2p.Install (nc01);
-  // NetDeviceContainer d12 = p2p.Install (nc12);
-  // NetDeviceContainer d23 = p2p.Install (nc23);
+  std::vector<NetDeviceContainer> devs;
+  for (int i = 0, l = connections; i < l; ++i) {
+    devs.push_back(p2p.Install(nc[i]));
+  }
 
+  uint8_t addrBuf[16] = {0x20, 0x01, 0xca, 0xfe, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   Ipv6AddressHelper ipv6;
-  NS_LOG_INFO ("Assign IPv6 Addresses.");
-  ipv6.SetBase(Ipv6Address("2001:cafe:1::"), Ipv6Prefix(64));
-  Ipv6InterfaceContainer i01 = ipv6.Assign (d01);
-  // i01.SetForwarding(1, true);
-  // ipv6.SetBase(Ipv6Address("2001:cafe:2::"), Ipv6Prefix(64));
-  // Ipv6InterfaceContainer i12 = ipv6.Assign (d12);
-  // i12.SetForwarding(0, true);
-  // i12.SetForwarding(1, true);
-  // ipv6.SetBase(Ipv6Address("2001:cafe:3::"), Ipv6Prefix(64));
-  // Ipv6InterfaceContainer i23 = ipv6.Assign (d23);
-  // i23.SetForwarding(0, true);
+  NS_LOG_INFO ("Assign IPv6 Addresses. base addr: " << Ipv6Address(addrBuf));
+
+  std::vector<Ipv6InterfaceContainer> ifaces;
+  for (int i = 0, l = connections; i < l; ++i) {
+    addrBuf[5] = i + 1;
+    ipv6.SetBase(Ipv6Address(addrBuf), Ipv6Prefix(64));
+    ifaces.push_back(ipv6.Assign(devs[i]));
+    if (i != 0) ifaces[i].SetForwarding(0, true);
+    if (i != connections - 1) ifaces[i].SetForwarding(1, true);
+  }
 
   NS_LOG_INFO ("Apply Routings.");
 #if 1
   ospf::Ipv6OspfRoutingHelper ipv6RoutingHelper;
-  ns.Get(0)->GetObject<Ipv6>()->SetRoutingProtocol(CreateObject<ospf::Ipv6OspfRouting>());
-  ns.Get(1)->GetObject<Ipv6>()->SetRoutingProtocol(CreateObject<ospf::Ipv6OspfRouting>());
-  // ns.Get(2)->GetObject<Ipv6>()->SetRoutingProtocol(CreateObject<ospf::Ipv6OspfRouting>());
-  // ns.Get(3)->GetObject<Ipv6>()->SetRoutingProtocol(CreateObject<ospf::Ipv6OspfRouting>());
+  for (int i = 0, l = nodes; i < l; ++i) {
+    ns.Get(i)->GetObject<Ipv6>()->SetRoutingProtocol(CreateObject<ospf::Ipv6OspfRouting>());
+  }
 #else
   Ipv6StaticRoutingHelper ipv6RoutingHelper;
   Ptr<Ipv6StaticRouting> rt0 = ipv6RoutingHelper.GetStaticRouting(ns.Get(0)->GetObject<Ipv6>());
@@ -141,10 +145,8 @@ int main (int argc, char **argv)
   Time interPacketInterval = Seconds (1.);
   Ping6Helper ping6;
 
-  ping6.SetLocal (i01.GetAddress (0, 1)); 
-  ping6.SetRemote (i01.GetAddress (1, 1));
-  // ping6.SetRemote (i12.GetAddress (1, 1));
-  // ping6.SetRemote (i23.GetAddress (1, 1));
+  ping6.SetLocal (ifaces[0].GetAddress (0, 1)); 
+  ping6.SetRemote (ifaces[ifaces.size() - 1].GetAddress (1, 1));
   // ping6.SetIfIndex (i.GetInterfaceIndex (0));
   // ping6.SetRemote (Ipv6Address::GetAllNodesMulticast ());
 
@@ -160,14 +162,10 @@ int main (int argc, char **argv)
   p2p.EnablePcapAll (std::string ("ping6"), true);
 
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(0), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(1), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(2), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(3), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(0), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(1), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(2), routingStream);
-  ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(3), routingStream);
+  for (int i = 0, l = nodes; i < l; ++i) {
+    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (19.9), ns.Get(i), routingStream);
+    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (60.1), ns.Get(i), routingStream);
+  }
 
   NS_LOG_INFO ("Run Simulation.");
   Simulator::Stop (Seconds(62));

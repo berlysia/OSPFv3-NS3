@@ -66,9 +66,9 @@ class NeighborData {
     Ipv6Address m_addr;
     RouterId m_designatedRouterId;
     RouterId m_backupDesignatedRouterId;
-    std::vector<OSPFLSA> m_lsRxmtList;
-    std::vector<OSPFLSAHeader> m_lsRequestList;
-    std::vector<OSPFLSAHeader> m_lsdbSummaryList;
+    std::vector<Ptr<OSPFLSA> > m_lsRxmtList;
+    std::vector<Ptr<OSPFLSAHeader> > m_lsRequestList;
+    std::vector<Ptr<OSPFLSAHeader> > m_lsdbSummaryList;
 
     bool m_initialized;
 
@@ -195,93 +195,115 @@ public:
         return m_lsdbSummaryList.size() == 0;
     }
 
-    std::vector<OSPFLSA>& GetRxmtList () {
+    std::vector<Ptr<OSPFLSA> >& GetRxmtList () {
         return m_lsRxmtList;
     }
 
-    std::vector<OSPFLSA> GetRxmtList (uint32_t maxBytes) {
-        std::vector<OSPFLSA> ret;
+    std::vector<Ptr<OSPFLSA> > GetRxmtList (uint32_t maxBytes) {
+        std::vector<Ptr<OSPFLSA> > ret;
         for (int i = 0, l = m_lsRxmtList.size(); i < l; ++i) {
-            maxBytes -= m_lsRxmtList[i].GetSerializedSize();
+            maxBytes -= m_lsRxmtList[i]->GetSerializedSize();
             if (maxBytes <= 0) break;
             ret.push_back(m_lsRxmtList[i]);
         }
         return ret;
     }
 
-    void AddRxmtList(OSPFLSA& lsa) {
+    void AddRxmtList(Ptr<OSPFLSA> lsa) {
         m_lsRxmtList.push_back(lsa);
     }
 
     bool HasInRxmtList (OSPFLinkStateIdentifier &id) {
-        for (OSPFLSA& item : m_lsRxmtList) {
+        for (auto item : m_lsRxmtList) {
             // ここにあるLSAは中身が入っているはず
-            if (*item.GetHeader() == id) {
+            if (*item->GetHeader() == id) {
                 return true;
             }
         }
         return false;
     }
 
-    OSPFLSA* GetFromRxmtList (OSPFLinkStateIdentifier &id) {
-        for (OSPFLSA& item : m_lsRxmtList) {
+    Ptr<OSPFLSA> GetFromRxmtList (OSPFLinkStateIdentifier &id) {
+        for (auto item : m_lsRxmtList) {
             // ここにあるLSAは中身が入っているはず
-            if (*item.GetHeader() == id) {
-                return &item;
+            if (*item->GetHeader() == id) {
+                return item;
             }
         }
         return 0;
     }
 
     void RemoveFromRxmtList(OSPFLinkStateIdentifier id) {
-        m_lsRxmtList.erase(std::remove(m_lsRxmtList.begin(), m_lsRxmtList.end(), id), m_lsRxmtList.end());
+        for (auto itr = m_lsRxmtList.begin(); itr != m_lsRxmtList.end(); ) {
+            if (**itr == id) {
+                itr = m_lsRxmtList.erase(itr);
+            } else {
+                itr++;
+            }
+        }
     }
 
-    std::vector<OSPFLSAHeader>& GetRequestList () {
+    std::vector<Ptr<OSPFLSAHeader> >& GetRequestList () {
         return m_lsRequestList;
     }
 
-    void AddRequestList (OSPFLSAHeader header) {
+    void AddRequestList (Ptr<OSPFLSAHeader> header) {
         m_lsRequestList.push_back(header);
     }
 
     bool HasInRequestList (OSPFLinkStateIdentifier &id) {
-        for (const OSPFLSAHeader& item : m_lsRequestList) {
-            if (item == id) return true;
+        for (auto item : m_lsRequestList) {
+            if (*item == id) return true;
         }
         return false;
     }
 
-    OSPFLSAHeader& GetFromRequestList (OSPFLinkStateIdentifier &id) {
-        auto itr = std::find(m_lsRequestList.begin(), m_lsRequestList.end(), id);
-        return *itr; // 使う前にHasInRequestListすること
+    Ptr<OSPFLSAHeader> GetFromRequestList (OSPFLinkStateIdentifier &id) {
+        for (auto item : m_lsRequestList) {
+            if (*item == id) {
+                return item;
+            }
+        }
+        return 0;
     }
 
     void RemoveFromRequestList(OSPFLinkStateIdentifier &id) {
-        m_lsRequestList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
+        for (auto itr = m_lsRequestList.begin(); itr != m_lsRequestList.end(); ) {
+            if (**itr == id) {
+                itr = m_lsRequestList.erase(itr);
+            } else {
+                itr++;
+            }
+        }
     }
 
-    std::vector<OSPFLSAHeader> GetRequestList (uint32_t maxBytes) {
-        std::vector<OSPFLSAHeader> ret;
+    std::vector<Ptr<OSPFLSAHeader> > GetRequestList (uint32_t maxBytes) {
+        std::vector<Ptr<OSPFLSAHeader> > ret;
         for (int i = 0, l = std::min(m_lsRequestList.size(), (unsigned long)(maxBytes / 20)); i < l; ++i) {
             ret.push_back(m_lsRequestList[i]);
         }
         return ret;
     }
 
-    void SetSummaryList (std::vector<OSPFLSAHeader> summary) {
+    void SetSummaryList (std::vector<Ptr<OSPFLSAHeader> > summary) {
         m_lsdbSummaryList = summary;
     }
 
     void RemoveFromSummaryList(OSPFLinkStateIdentifier &id) {
-        m_lsdbSummaryList.erase(std::remove(m_lsRequestList.begin(), m_lsRequestList.end(), id), m_lsRequestList.end());
+        for (auto itr = m_lsdbSummaryList.begin(); itr != m_lsdbSummaryList.end(); ) {
+            if (**itr == id) {
+                itr = m_lsdbSummaryList.erase(itr);
+            } else {
+                itr++;
+            }
+        }
     }
 
     uint32_t GetSummaryListSize () {
         return m_lsdbSummaryList.size();
     }
-    std::vector<OSPFLSAHeader> GetSummaryList (uint32_t maxBytes) {
-        std::vector<OSPFLSAHeader> ret;
+    std::vector<Ptr<OSPFLSAHeader> > GetSummaryList (uint32_t maxBytes) {
+        std::vector<Ptr<OSPFLSAHeader> > ret;
         for (int i = maxBytes / 20; i && !m_lsdbSummaryList.empty(); --i) {
             ret.push_back(m_lsdbSummaryList.back());
             m_lsdbSummaryList.pop_back();

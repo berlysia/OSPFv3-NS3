@@ -86,7 +86,7 @@ public:
         // m_interfaceId;
         // m_ifaceAddr;
         // m_ifaceMask;
-        m_areaId = 0;
+        m_areaId = 1;
         m_helloInterval = Seconds(10.0);
         m_routerDeadInterval = Seconds(40.0);
         m_ifaceTransDelay = 1;
@@ -103,7 +103,7 @@ public:
     }
 
     void ResetInstance () {
-        m_areaId = 0;
+        m_areaId = 1;
         m_helloInterval = Seconds(10.0);
         m_routerDeadInterval = Seconds(40.0);
         m_ifaceTransDelay = 1;
@@ -178,12 +178,12 @@ public:
         return m_routerPriority;
     }
 
-    void AddLinkLocalLSA(RouterId routerId, OSPFLSA& lsa) {
-        m_linkLocalLsa_set.insert(lsa.GetIdentifier());
-        OSPFLinkLSABody& lsBody = dynamic_cast<OSPFLinkLSABody&>(*lsa.GetBody());
+    void AddLinkLocalLSA(RouterId routerId, Ptr<OSPFLSA> lsa) {
+        m_linkLocalLsa_set.insert(lsa->GetIdentifier());
+        auto lsBody = lsa->GetBody<OSPFLinkLSABody>();
         ClearPrefix(routerId);
-        for (int i = 0, l = lsBody.CountPrefixes(); i < l; ++i) {
-            AddPrefix(routerId, lsBody.GetPrefixAddress(i), lsBody.GetPrefixLength(i));
+        for (int i = 0, l = lsBody->CountPrefixes(); i < l; ++i) {
+            AddPrefix(routerId, lsBody->GetPrefixAddress(i), lsBody->GetPrefixLength(i));
         }
     }
 
@@ -250,7 +250,7 @@ public:
         return false;
     }
 
-    void AddRxmtList(OSPFLSA& lsa) {
+    void AddRxmtList(Ptr<OSPFLSA> lsa) {
         for (auto& kv : m_neighbors) {
             kv.second.AddRxmtList(lsa);
         }

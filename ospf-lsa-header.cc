@@ -80,10 +80,10 @@ std::ostream& operator<< (std::ostream& os, const OSPFLSAHeader& lsaHdr) {
     lsaHdr.Print(os);
     return os;
 }
-std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSAHeader>& lsaHdrs) {
+std::ostream& operator<< (std::ostream& os, std::vector<Ptr<OSPFLSAHeader> >& lsaHdrs) {
     os << "#" << lsaHdrs.size() << " (";
-    for (auto& item : lsaHdrs) {
-        item.Print(os);
+    for (auto item : lsaHdrs) {
+        item->Print(os);
         os << ", ";
     }
     os << ")";

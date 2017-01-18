@@ -20,7 +20,7 @@ void TestForOSPFDatabaseDescription () {
     srcHdr.SetMoreFlag(false);
     srcHdr.SetMasterFlag(true);
     srcHdr.SetSequenceNumber(6789);
-    srcHdr.SetLSAHeaders(vector<ns3::ospf::OSPFLSAHeader>(3));
+    srcHdr.SetLSAHeaders(vector<Ptr<ns3::ospf::OSPFLSAHeader> >(3));
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(srcHdr);

@@ -104,7 +104,7 @@ public:
     }
 };
 std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa);
-std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSA>& lsas);
+std::ostream& operator<< (std::ostream& os, std::vector<Ptr<OSPFLSA> >& lsas);
 
 }
 }

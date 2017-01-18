@@ -18,7 +18,7 @@ private:
     bool m_moreFlag;
     bool m_masterFlag;
     uint32_t m_ddSeqNum;
-    std::vector<OSPFLSAHeader> m_lsaHeaders;
+    std::vector<Ptr<OSPFLSAHeader> > m_lsaHeaders;
 
 public:
     OSPFDatabaseDescription () : OSPFHeader () {
@@ -47,8 +47,8 @@ public:
     bool GetMasterFlag() const {return m_masterFlag;}
     void SetSequenceNumber(uint32_t ddSeqNum) {m_ddSeqNum = ddSeqNum;}
     uint32_t GetSequenceNumber() const {return m_ddSeqNum;}
-    void SetLSAHeaders(std::vector<OSPFLSAHeader> headers) {m_lsaHeaders = headers;}
-    std::vector<OSPFLSAHeader>& GetLSAHeaders() {return m_lsaHeaders;}
+    void SetLSAHeaders(std::vector<Ptr<OSPFLSAHeader> > headers) {m_lsaHeaders = headers;}
+    std::vector<Ptr<OSPFLSAHeader> >& GetLSAHeaders() {return m_lsaHeaders;}
     bool IsNegotiation () {
         return m_initFlag && m_moreFlag && m_masterFlag && m_lsaHeaders.size() == 0;
     }

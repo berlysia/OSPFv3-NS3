@@ -60,10 +60,10 @@ std::ostream& operator<< (std::ostream& os, const OSPFLSA& lsa) {
     lsa.Print(os);
     return os;
 }
-std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSA>& lsas) {
+std::ostream& operator<< (std::ostream& os, std::vector<Ptr<OSPFLSA> >& lsas) {
     os << "#" << lsas.size() << " (";
-    for (auto& item : lsas) {
-        item.Print(os);
+    for (auto item : lsas) {
+        item->Print(os);
         os << ", ";
     }
     os << ")";

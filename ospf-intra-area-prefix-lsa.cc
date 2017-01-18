@@ -30,12 +30,13 @@ TypeId OSPFIntraAreaPrefixLSABody::GetInstanceId () const {
 }
 
 uint32_t OSPFIntraAreaPrefixLSABody::GetSerializedSize () const {
-    uint32_t size = 2 + 2 + 4 + 4;
-    // for(int idx = 0, l = m_addressPrefixes.size(); idx < l; ++idx) {
-    //     uint8_t length = GetPrefixLength(idx);
-    //     size += 2 + ((length + 31) / 32) * 4;
-    // }
-    return size + m_addressPrefixes.size() * 20;
+    uint32_t size = 12;
+    for(int idx = 0, l = m_addressPrefixes.size(); idx < l; ++idx) {
+        uint8_t length = GetPrefixLength(idx);
+        size += 4 + ((length + 31) / 32) * 4;
+    }
+    return size;
+    // return size + m_addressPrefixes.size() * 20;
 } 
 void OSPFIntraAreaPrefixLSABody::Print (std::ostream &os) const {
     os << "(Intra area prefix LSA: [";
@@ -81,22 +82,22 @@ void OSPFIntraAreaPrefixLSABody::Serialize (Buffer::Iterator &i) const {
 
     uint8_t buf[16];
     for (int idx = 0, l = size; idx < l; ++idx) {
-        i.WriteU8(m_prefixOptions[idx]);
-        const Ipv6Address& addr = m_addressPrefixes[idx];
         uint8_t length = m_prefixLengthes[idx];
         i.WriteU8(length);
+        i.WriteU8(m_prefixOptions[idx]);
+        const Ipv6Address& addr = m_addressPrefixes[idx];
         i.WriteHtonU16(m_metrics[idx]);
 
         addr.GetBytes(buf);
 
-        // uint8_t bufSize = (length + 31) / 32 * 4;
-        // for (int j = 0, ll = (length + 31) / 32 * 4; j < ll; ++j) {
-        //     i.WriteU8(buf[j]);
-        // }
-
-        for (int j = 0, l = 16; j < l; ++j) {
+        uint8_t bufSize = (length + 31) / 32 * 4;
+        for (int j = 0, ll = (length + 31) / 32 * 4; j < ll; ++j) {
             i.WriteU8(buf[j]);
         }
+
+        // for (int j = 0, l = 16; j < l; ++j) {
+        //     i.WriteU8(buf[j]);
+        // }
     }
 }
 uint32_t OSPFIntraAreaPrefixLSABody::Deserialize (Buffer::Iterator &i, uint32_t remainBytes) {
@@ -111,16 +112,18 @@ uint32_t OSPFIntraAreaPrefixLSABody::Deserialize (Buffer::Iterator &i, uint32_t 
     m_prefixLengthes.resize(size);
     m_metrics.resize(size);
     for (int idx = 0, l = size; idx < l; ++idx) {
-        m_prefixOptions[idx] = i.ReadU8();
         m_prefixLengthes[idx] = i.ReadU8();
+        m_prefixOptions[idx] = i.ReadU8();
         m_metrics[idx] = i.ReadNtohU16();
-        // memset(buf, 0x00, 16);
-        // for (int j = 0, ll = (m_prefixLengthes[idx] + 31) / 32 * 4; j < ll; ++j) {
-        //     buf[j] = i.ReadU8();
-        // }
-        for (int j = 0, l = 16; j < l; ++j) {
+
+        memset(buf, 0x00, 16);
+        uint8_t bufSize = (m_prefixLengthes[idx] + 31) / 32 * 4;
+        for (int j = 0, ll = bufSize; j < ll; ++j) {
             buf[j] = i.ReadU8();
         }
+        // for (int j = 0, l = 16; j < l; ++j) {
+        //     buf[j] = i.ReadU8();
+        // }
         m_addressPrefixes[idx].Set(buf);
     }
     return OSPFIntraAreaPrefixLSABody::GetSerializedSize();

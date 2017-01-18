@@ -27,7 +27,7 @@ void OSPFLinkStateAck::Print (std::ostream &os) const {
     os << "Link State Ack - ";
     os << "lsaHeaders: " << m_lsaHeaders.size() << "[";
     for (int i = 0, l = m_lsaHeaders.size(); i < l; ++i) {
-        m_lsaHeaders[i].Print(os);
+        m_lsaHeaders[i]->Print(os);
         os << ", ";
     }
     os << "])";
@@ -51,7 +51,7 @@ void OSPFLinkStateAck::Serialize (Buffer::Iterator start) const {
     start.Next(OSPFHeader::GetSerializedSize());
 
     for(int idx = 0, l = m_lsaHeaders.size(); idx < l; ++idx) {
-        m_lsaHeaders[idx].Serialize(start);
+        m_lsaHeaders[idx]->Serialize(start);
     }
 }
 uint32_t OSPFLinkStateAck::Deserialize (Buffer::Iterator start) {
@@ -60,7 +60,8 @@ uint32_t OSPFLinkStateAck::Deserialize (Buffer::Iterator start) {
     uint32_t size = (m_packetLength - OSPFHeader::GetSerializedSize()) / 20;
     m_lsaHeaders.resize(size);
     for(int idx = 0, l = size; idx < l; ++idx) {
-        m_lsaHeaders[idx].Deserialize(start);
+        m_lsaHeaders[idx] = Create<OSPFLSAHeader>();
+        m_lsaHeaders[idx]->Deserialize(start);
     }
 
     return OSPFLinkStateAck::GetSerializedSize ();

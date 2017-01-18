@@ -153,7 +153,7 @@ public:
     }
 };
 std::ostream& operator<< (std::ostream& os, const OSPFLSAHeader& lsaHdr);
-std::ostream& operator<< (std::ostream& os, std::vector<OSPFLSAHeader>& lsaHdrs);
+std::ostream& operator<< (std::ostream& os, std::vector<Ptr<OSPFLSAHeader> >& lsaHdrs);
 
 }
 }

@@ -12,7 +12,7 @@ namespace ospf {
 
 class OSPFLinkStateUpdate : public OSPFHeader {
 private:
-    std::vector<OSPFLSA> m_lsas;
+    std::vector<Ptr<OSPFLSA> > m_lsas;
 
 public:
     OSPFLinkStateUpdate () : OSPFHeader () {
@@ -32,16 +32,16 @@ public:
         return m_lsas.size();
     }
 
-    void AddLSA(OSPFLSA &lsa) {
+    void AddLSA(Ptr<OSPFLSA> lsa) {
         m_lsas.push_back(lsa);
     }
-    void SetLSAs(std::vector<OSPFLSA> lsas) {
+    void SetLSAs(std::vector<Ptr<OSPFLSA> >& lsas) {
         m_lsas = lsas;
     }
-    OSPFLSA& GetLSA (int index) {
+    Ptr<OSPFLSA> GetLSA (int index) {
         return m_lsas[index];
     }
-    std::vector<OSPFLSA>& GetLSAs () {
+    std::vector<Ptr<OSPFLSA> >& GetLSAs () {
         return m_lsas;
     }
     bool operator== (const OSPFLinkStateUpdate &other) const {

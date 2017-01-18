@@ -101,18 +101,18 @@ public:
     virtual void SendLinkStateUpdatePacketEntryPoint();
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx);
     virtual void SendLinkStateUpdatePacket(uint32_t ifaceIdx, RouterId neighborRouterId);
-    virtual void SendLinkStateUpdatePacketDirectAsap(uint32_t ifaceIdx, OSPFLSA& lsa, RouterId neighborRouterId = 0);
-    virtual void SendLinkStateUpdatePacketDirect(uint32_t ifaceIdx, std::vector<OSPFLSA>& lsas, RouterId neighborRouterId = 0);
-    virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, OSPFLSAHeader& lsaHeader , RouterId neighborRouterId = 0);
-    virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, std::vector<OSPFLSAHeader>& lsaHeaders , RouterId neighborRouterId = 0);
+    virtual void SendLinkStateUpdatePacketDirectAsap(uint32_t ifaceIdx, Ptr<OSPFLSA> lsa, RouterId neighborRouterId = 0);
+    virtual void SendLinkStateUpdatePacketDirect(uint32_t ifaceIdx, std::vector<Ptr<OSPFLSA> >& lsas, RouterId neighborRouterId = 0);
+    virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, Ptr<OSPFLSAHeader> lsaHeader , RouterId neighborRouterId = 0);
+    virtual void SendLinkStateAckPacket(uint32_t ifaceIdx, std::vector<Ptr<OSPFLSAHeader> >& lsaHeaders , RouterId neighborRouterId = 0);
 
     virtual void NotifyInterfaceEvent(uint32_t ifaceIdx, InterfaceEvent event);
     virtual void NotifyNeighborEvent(uint32_t ifaceIdx, RouterId neighborRouterId, NeighborEvent event);
     virtual bool IsNeighborToBeAdjacent(uint32_t ifaceIdx, RouterId neighborRouterId);
     virtual void RemoveFromAllRxmtList(OSPFLinkStateIdentifier& id);
     virtual Time& GetLastLSUSentTime ();
-    virtual void AppendToRxmtList (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId senderRouterId, bool sendAsap = false);
-    virtual void DirectAppendToRxmtList (OSPFLSA& lsa, uint32_t ifaceIdx, RouterId neighborRouterId, bool sendAsap = false);
+    virtual void AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t ifaceIdx, RouterId senderRouterId, bool sendAsap = false);
+    virtual void DirectAppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t ifaceIdx, RouterId neighborRouterId, bool sendAsap = false);
 
     virtual uint16_t CalcMetricForInterface (uint32_t ifaceIdx);
 

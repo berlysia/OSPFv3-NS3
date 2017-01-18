@@ -12,7 +12,7 @@ namespace ospf {
 
 class OSPFLinkStateAck : public OSPFHeader {
 private:
-    std::vector<OSPFLSAHeader> m_lsaHeaders;
+    std::vector<Ptr<OSPFLSAHeader> > m_lsaHeaders;
 
 public:
     OSPFLinkStateAck () : OSPFHeader () {
@@ -28,8 +28,8 @@ public:
     virtual void Print (std::ostream &os) const; 
     virtual void Serialize (Buffer::Iterator start) const;
 
-    void SetLSAHeaders(std::vector<OSPFLSAHeader> headers) {m_lsaHeaders = headers;}
-    std::vector<OSPFLSAHeader>& GetLSAHeaders() {return m_lsaHeaders;}
+    void SetLSAHeaders(std::vector<Ptr<OSPFLSAHeader> > headers) {m_lsaHeaders = headers;}
+    std::vector<Ptr<OSPFLSAHeader> >& GetLSAHeaders() {return m_lsaHeaders;}
     bool operator== (const OSPFLinkStateAck &other) const {
         OSPFHeader sup = *this;
         OSPFHeader oth = other;

@@ -78,6 +78,13 @@ public:
     virtual uint32_t GetInterfaceId(int idx) {return m_interfaceIds[idx];}
     virtual uint32_t GetNeighborInterfaceId(int idx) {return m_neighborInterfaceIds[idx];}
     virtual uint32_t GetNeighborRouterId(int idx) {return m_neighborRouterIds[idx];}
+    virtual void ClearNeighbors() {
+        m_types.clear();
+        m_metrics.clear();
+        m_interfaceIds.clear();
+        m_neighborInterfaceIds.clear();
+        m_neighborRouterIds.clear();
+    }
     virtual void AddNeighbor(uint8_t type, uint16_t metric, uint32_t ifaceId, uint32_t nghIfaceId, uint32_t ngnRtrId) {
         m_types.push_back(type);
         m_metrics.push_back(metric);

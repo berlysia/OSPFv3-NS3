@@ -59,10 +59,10 @@ void OSPFLinkStateRequest::Serialize (Buffer::Iterator i) const {
 
     for(int idx = 0, l = m_ids.size(); idx < l; ++idx) {
         const OSPFLinkStateIdentifier &identifier = m_ids[idx];
-        i.WriteU16(0);
-        i.WriteU16(identifier.m_type);
-        i.WriteU32(identifier.m_id);
-        i.WriteU32(identifier.m_advRtr);
+        i.WriteHtonU16(0);
+        i.WriteHtonU16(identifier.m_type);
+        i.WriteHtonU32(identifier.m_id);
+        i.WriteHtonU32(identifier.m_advRtr);
     }
 }
 uint32_t OSPFLinkStateRequest::Deserialize (Buffer::Iterator i) {
@@ -70,8 +70,8 @@ uint32_t OSPFLinkStateRequest::Deserialize (Buffer::Iterator i) {
 
     uint32_t size = (m_packetLength - OSPFHeader::GetSerializedSize()) / 12;
     for(int idx = 0, l = size; idx < l; ++idx) {
-        i.ReadU16();
-        SetLinkStateIdentifier(i.ReadU16(), i.ReadU32(), i.ReadU32());
+        i.ReadNtohU16();
+        SetLinkStateIdentifier(i.ReadNtohU16(), i.ReadNtohU32(), i.ReadNtohU32());
     }
 
     return OSPFLinkStateRequest::GetSerializedSize();

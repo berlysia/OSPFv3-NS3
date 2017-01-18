@@ -25,7 +25,7 @@ bool m_initFlag;
 bool m_moreFlag;
 bool m_masterFlag;
 uint32_t m_ddSeqNum;
-vector<OSPFLSAHeader> m_lsaHeaders;
+vector<Ptr<OSPFLSAHeader> > m_lsaHeaders;
 */
 
 uint32_t OSPFDatabaseDescription::GetSerializedSize () const {
@@ -44,7 +44,7 @@ void OSPFDatabaseDescription::Print (std::ostream &os) const {
     os << "  ddSeqNum : " << m_ddSeqNum << "\n";
     os << "  lsaHeaders: " << m_lsaHeaders.size() << "\n";
     for (int i = 0, l = m_lsaHeaders.size(); i < l; ++i) {
-        m_lsaHeaders[i].Print(os);
+        m_lsaHeaders[i]->Print(os);
     }
 } 
 void OSPFDatabaseDescription::Serialize (Buffer::Iterator start) const {
@@ -82,12 +82,11 @@ void OSPFDatabaseDescription::Serialize (Buffer::Iterator start) const {
     // uint32_t size = m_lsaHeaders.size();
     // start.WriteHtonU32(size);
     for(int idx = 0, l = m_lsaHeaders.size(); idx < l; ++idx) {
-        m_lsaHeaders[idx].Serialize(start);
+        m_lsaHeaders[idx]->Serialize(start);
     }
 }
 uint32_t OSPFDatabaseDescription::Deserialize (Buffer::Iterator start) {
     start.Next(OSPFHeader::Deserialize(start));
-
     m_options = start.ReadNtohU32();
     m_mtu = start.ReadNtohU16();
     uint8_t buff = start.ReadNtohU16();
@@ -99,7 +98,8 @@ uint32_t OSPFDatabaseDescription::Deserialize (Buffer::Iterator start) {
     uint32_t size = (m_packetLength - GetSerializedSize()) / 20;
     m_lsaHeaders.resize(size);
     for(int idx = 0, l = size; idx < l; ++idx) {
-        m_lsaHeaders[idx].Deserialize(start);
+        m_lsaHeaders[idx] = Create<OSPFLSAHeader>();
+        m_lsaHeaders[idx]->Deserialize(start);
     }
 
     return OSPFDatabaseDescription::GetSerializedSize ();

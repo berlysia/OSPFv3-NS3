@@ -44,6 +44,12 @@ public:
     virtual uint8_t GetPrefixLength(uint32_t idx) const {return m_prefixLengthes[idx];}
     virtual uint16_t GetPrefixMetric(uint32_t idx) const {return m_metrics[idx];}
     virtual const Ipv6Address& GetPrefixAddress(uint32_t idx) const {return m_addressPrefixes[idx];}
+    virtual void ClearPrefixes() {
+        m_prefixLengthes.clear();
+        m_addressPrefixes.clear();
+        m_prefixOptions.clear();
+        m_metrics.clear();
+    }
     virtual void AddPrefix(Ipv6Address addr, uint8_t prefixLength, uint16_t metric, uint32_t option = 0) {
         m_prefixLengthes.push_back(prefixLength);
         Ipv6Prefix prefix(prefixLength);

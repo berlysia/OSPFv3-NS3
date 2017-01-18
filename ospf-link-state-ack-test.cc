@@ -13,7 +13,7 @@ void TestForOSPFLinkStateAck () {
     srcHdr.SetRouterId(123);
     srcHdr.SetInstanceId(5);
     
-    srcHdr.SetLSAHeaders(vector<ns3::ospf::OSPFLSAHeader>(3));
+    srcHdr.SetLSAHeaders(vector<Ptr<ns3::ospf::OSPFLSAHeader>>(3));
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(srcHdr);
