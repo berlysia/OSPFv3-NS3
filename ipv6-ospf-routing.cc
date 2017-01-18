@@ -485,6 +485,7 @@ void Ipv6OspfRouting::OriginateLinkLSA(uint32_t ifaceIdx, bool forceRefresh) {
     body.SetRtrPriority(1);
     body.SetOptions(0x13); // V6, E, R
     body.SetLinkLocalAddress(ifaceData.GetAddress());
+    body.ClearPrefixes();
 
     uint8_t options;
     for (uint32_t i = 0, l = m_ipv6->GetNAddresses (ifaceIdx); i < l; ++i) {
@@ -505,15 +506,12 @@ void Ipv6OspfRouting::OriginateLinkLSA(uint32_t ifaceIdx, bool forceRefresh) {
     bool updateFlag = true;
     if (m_lsdb.Has(id)) {
         updateFlag = !(*m_lsdb.Get(id)->GetBody() == *lsa->GetBody());
-        if (updateFlag) {
-            AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
-            return;
-        }
     } else {
         m_lsdb.Add(lsa);
         ifaceData.AddLinkLocalLSA(m_routerId, lsa);
     }
-
+    RemoveFromAllRxmtList(id);
+    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
     if (updateFlag) {
         if (m_tableUpdateReducible) {
             m_tableUpdateRequired = true;
@@ -521,8 +519,6 @@ void Ipv6OspfRouting::OriginateLinkLSA(uint32_t ifaceIdx, bool forceRefresh) {
             CalcRoutingTable();
         }
     }
-
-    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
 }
 void Ipv6OspfRouting::OriginateRouterLSA(bool forceRefresh) {
     NS_LOG_FUNCTION (m_routerId);
@@ -599,14 +595,12 @@ void Ipv6OspfRouting::OriginateRouterLSA(bool forceRefresh) {
     bool updateFlag = true;
     if (m_lsdb.Has(id)) {
         updateFlag = !(*m_lsdb.Get(id)->GetBody() == *lsa->GetBody());
-        if (updateFlag) {
-            AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
-            return;
-        }
     } else {
         m_lsdb.Add(lsa);
         m_routerLSA_set.insert(lsa->GetIdentifier());
     }
+    RemoveFromAllRxmtList(id);
+    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
     if (updateFlag) {
         if (m_tableUpdateReducible) {
             m_tableUpdateRequired = true;
@@ -614,7 +608,6 @@ void Ipv6OspfRouting::OriginateRouterLSA(bool forceRefresh) {
             CalcRoutingTable();
         }
     }
-    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
 }
 
 void Ipv6OspfRouting::OriginateIntraAreaPrefixLSA(bool forceRefresh) {
@@ -709,14 +702,12 @@ void Ipv6OspfRouting::OriginateIntraAreaPrefixLSA(bool forceRefresh) {
     bool updateFlag = true;
     if (m_lsdb.Has(id)) {
         updateFlag = !(*m_lsdb.Get(id)->GetBody() == *lsa->GetBody());
-        if (updateFlag) {
-            AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
-            return;
-        }
     } else {
         m_lsdb.Add(lsa);
         m_intraAreaPrefixLSA_set.insert(lsa->GetIdentifier());
     }
+    RemoveFromAllRxmtList(id);
+    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
     if (updateFlag) {
         if (m_tableUpdateReducible) {
             m_tableUpdateRequired = true;
@@ -724,7 +715,6 @@ void Ipv6OspfRouting::OriginateIntraAreaPrefixLSA(bool forceRefresh) {
             CalcRoutingTable();
         }
     }
-    AppendToRxmtList(lsa, 0/* FIXME: DR, BDRで壊れるはず */, m_routerId);
 }
 
 void Ipv6OspfRouting::OriginateRouterSpecificLSAs (uint32_t ifaceIdx, bool forceRefresh) {
@@ -1173,9 +1163,9 @@ void Ipv6OspfRouting::ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ptr<Packet
         if (isSameInstance) {
             if (neighData.HasInRxmtList(identifier)) {
                 NS_LOG_INFO("ReceiveLinkStateUpdatePacket(" << m_routerId << ", " << ifaceIdx << "), neighbor #" << neighData.GetRouterId() << " - 暗黙の確認応答によりRxmt Listから削除します: " << identifier);
-                NS_LOG_DEBUG("before:" << neighData.GetRxmtList());
                 neighData.RemoveFromRxmtList(identifier);
-                NS_LOG_DEBUG("after :" << neighData.GetRxmtList());
+                NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceIdx << ", neighbor " << neighData.GetRouterId() << " から削除しました: " << identifier);
+                NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceIdx << ", neighbor " << neighData.GetRouterId() << " 残り: " << neighData.GetRxmtList());
                 // もしBDRなら処理があるので、実装する場合は 13. を見ること
             } else {
                 // direct ack
@@ -1205,6 +1195,7 @@ void Ipv6OspfRouting::DirectAppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t ifaceId
         SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, neighborRouterId);
     } else {
         neighData.AddRxmtList(lsa);
+        NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << *lsa);
         NS_LOG_INFO("Rxmt List rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << neighData.GetRxmtList());
     }
 }
@@ -1264,7 +1255,7 @@ void Ipv6OspfRouting::AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t receivedIface
             NeighborData& neighData = kv.second;
             // 1.a
             if (neighData.GetState() < NeighborState::EXCHANGE) {
-                NS_LOG_LOGIC("reject interface " << ifaceIdx << ", neighbor " << kv.first);
+                NS_LOG_LOGIC("reject interface " << ifaceIdx << ", neighbor " << kv.first << ": 状態が不正 " << neighData.GetState());
                 continue; // next neighbor
             }
             // 1.b
@@ -1303,7 +1294,8 @@ void Ipv6OspfRouting::AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t receivedIface
                 SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, kv.first);
             } else {
                 neighData.AddRxmtList(lsa);
-                NS_LOG_INFO("Rxmt List rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << kv.first << " " << neighData.GetRxmtList());
+                NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << kv.first << " " << *lsa);
+                // NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << kv.first << " " << neighData.GetRxmtList());
             }
             isAlreadyAddedToRxmtList = true;
             NS_LOG_LOGIC("accepted on interface " << ifaceIdx << ", neighbor " << kv.first);
@@ -1341,6 +1333,7 @@ void Ipv6OspfRouting::AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t receivedIface
             SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, 0);
         } else {
             ifaceData.AddRxmtList(lsa);
+            NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << " " << *lsa);
         }
     }
 }
@@ -1409,14 +1402,17 @@ void Ipv6OspfRouting::ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ptr<Packet> p
 
 void Ipv6OspfRouting::RemoveFromAllRxmtList(OSPFLinkStateIdentifier &identifier) {
     NS_LOG_FUNCTION(m_routerId);
-    if(m_lsdb.Has(identifier)) {
+    if(m_lsdb.Has(identifier))
         NS_LOG_INFO("RemoveFromAllRxmtList - 持っているLSAです: " << identifier);
-    } else
+    else
         NS_LOG_INFO("RemoveFromAllRxmtList - 持っていないLSAです: " << identifier);
+
     for (InterfaceData& ifaceData : m_interfaces) {
         if (!ifaceData.IsActive()) continue;
         for (auto& kv : ifaceData.GetNeighbors()) {
             kv.second.RemoveFromRxmtList(identifier);
+            NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceData.GetInterfaceId() << ", neighbor " << kv.first << " から削除しました: " << identifier);
+            NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceData.GetInterfaceId() << ", neighbor " << kv.first << " 残り: " << kv.second.GetRxmtList());
         }
     }
 }
@@ -1592,6 +1588,7 @@ void Ipv6OspfRouting::NotifyNeighborEvent(uint32_t ifaceIdx, RouterId neighborRo
             NS_LOG_LOGIC("Set Summary List: router " << m_routerId << ", nghRtrId " << neighborRouterId << ", size " << neighbor.GetSummaryListSize());
             for(auto maxAgedLsa : rxmt) {
                 neighbor.AddRxmtList(maxAgedLsa);
+                NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << *maxAgedLsa);
                 NS_LOG_INFO("Rxmt List rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId <<  " " << neighbor.GetRxmtList());
             }
             Simulator::ScheduleNow(&Ipv6OspfRouting::SendDatabaseDescriptionPacket, this, ifaceIdx, neighborRouterId, false);
