@@ -91,6 +91,8 @@ void Ipv6OspfRouting::PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const
         << ", Time: " << Now().As (Time::S)
         << ", Local time: " << GetObject<Node> ()->GetLocalTime ().As (Time::S)
         << ", Ipv6OspfRouting table" << std::endl;
+    
+    *os << m_routingTable << std::flush;
 
     // if (GetNRoutes () > 0)
     // {
@@ -1164,8 +1166,6 @@ void Ipv6OspfRouting::ReceiveLinkStateUpdatePacket(uint32_t ifaceIdx, Ptr<Packet
             if (neighData.HasInRxmtList(identifier)) {
                 NS_LOG_INFO("ReceiveLinkStateUpdatePacket(" << m_routerId << ", " << ifaceIdx << "), neighbor #" << neighData.GetRouterId() << " - 暗黙の確認応答によりRxmt Listから削除します: " << identifier);
                 neighData.RemoveFromRxmtList(identifier);
-                NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceIdx << ", neighbor " << neighData.GetRouterId() << " から削除しました: " << identifier);
-                NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceIdx << ", neighbor " << neighData.GetRouterId() << " 残り: " << neighData.GetRxmtList());
                 // もしBDRなら処理があるので、実装する場合は 13. を見ること
             } else {
                 // direct ack
@@ -1195,8 +1195,6 @@ void Ipv6OspfRouting::DirectAppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t ifaceId
         SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, neighborRouterId);
     } else {
         neighData.AddRxmtList(lsa);
-        NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << *lsa);
-        NS_LOG_INFO("Rxmt List rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << neighData.GetRxmtList());
     }
 }
 
@@ -1294,8 +1292,6 @@ void Ipv6OspfRouting::AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t receivedIface
                 SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, kv.first);
             } else {
                 neighData.AddRxmtList(lsa);
-                NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << kv.first << " " << *lsa);
-                // NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << kv.first << " " << neighData.GetRxmtList());
             }
             isAlreadyAddedToRxmtList = true;
             NS_LOG_LOGIC("accepted on interface " << ifaceIdx << ", neighbor " << kv.first);
@@ -1333,7 +1329,6 @@ void Ipv6OspfRouting::AppendToRxmtList (Ptr<OSPFLSA> lsa, uint32_t receivedIface
             SendLinkStateUpdatePacketDirectAsap(ifaceIdx, lsa, 0);
         } else {
             ifaceData.AddRxmtList(lsa);
-            NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << " " << *lsa);
         }
     }
 }
@@ -1411,8 +1406,6 @@ void Ipv6OspfRouting::RemoveFromAllRxmtList(OSPFLinkStateIdentifier &identifier)
         if (!ifaceData.IsActive()) continue;
         for (auto& kv : ifaceData.GetNeighbors()) {
             kv.second.RemoveFromRxmtList(identifier);
-            NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceData.GetInterfaceId() << ", neighbor " << kv.first << " から削除しました: " << identifier);
-            NS_LOG_INFO("RemoveFromRxmtList - router "<<m_routerId<<", ifaceIdx " << ifaceData.GetInterfaceId() << ", neighbor " << kv.first << " 残り: " << kv.second.GetRxmtList());
         }
     }
 }
@@ -1588,8 +1581,6 @@ void Ipv6OspfRouting::NotifyNeighborEvent(uint32_t ifaceIdx, RouterId neighborRo
             NS_LOG_LOGIC("Set Summary List: router " << m_routerId << ", nghRtrId " << neighborRouterId << ", size " << neighbor.GetSummaryListSize());
             for(auto maxAgedLsa : rxmt) {
                 neighbor.AddRxmtList(maxAgedLsa);
-                NS_LOG_INFO("AddRxmtList rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId << " " << *maxAgedLsa);
-                NS_LOG_INFO("Rxmt List rtr: " << m_routerId << ", iface: " << ifaceIdx << ", nbr: " << neighborRouterId <<  " " << neighbor.GetRxmtList());
             }
             Simulator::ScheduleNow(&Ipv6OspfRouting::SendDatabaseDescriptionPacket, this, ifaceIdx, neighborRouterId, false);
         }
@@ -1984,13 +1975,15 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
         pq.pop();
         NS_LOG_INFO(" currState - id: " << currId << ", cost: " << currCost);
         if (table[currId].size()) {
-            for (auto& kv : table[currId]) {
+            for (auto& kv : table[currId]) { // unorderedなので順序保証なし
                 adjRtrId = kv.first;
                 adjCost = kv.second;
-            // for (uint32_t adjRtrId = 0, l = routers; adjRtrId < l; ++adjRtrId) {
-            //     adjCost = table[currId][adjRtrId];
                 tmpCost = currCost + adjCost;
-                if (tmpCost < costs[adjRtrId]) {
+                if (
+                    tmpCost < costs[adjRtrId] || (
+                        tmpCost == costs[adjRtrId] && currId < prevs[adjRtrId] // 等しかったらID若い方を優先
+                    )
+                ) {
                     costs[adjRtrId] = tmpCost;
                     prevs[adjRtrId] = currId;
                     pq.push(std::make_pair(tmpCost, adjRtrId));

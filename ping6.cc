@@ -49,43 +49,74 @@ int main (int argc, char **argv)
 {
   bool verbose = false;
   int nodes = 2;
+  std::string inputFile = "";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "turn on log components", verbose);
+  cmd.AddValue ("inputFile", "input file name", inputFile);
+  /*
+    # input file format (1-indexed)
+
+    [nodes]
+    [conns]
+    [src] [dst]
+    [src] [dst]
+    ...
+  */
   cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
 
-  LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
-  LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
-  // LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Packet", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6Header", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6Address", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6StaticRouting", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6RoutingProtocol", LOG_LEVEL_ALL);
-  if (verbose)
-    {
-      LogComponentEnable ("Ping6Example", LOG_LEVEL_INFO);
-      LogComponentEnable ("Ipv6EndPointDemux", LOG_LEVEL_ALL);
-      LogComponentEnable ("Ipv6L3Protocol", LOG_LEVEL_ALL);
-      LogComponentEnable ("Ipv6StaticRouting", LOG_LEVEL_ALL);
-      LogComponentEnable ("Ipv6ListRouting", LOG_LEVEL_ALL);
-      LogComponentEnable ("Ipv6Interface", LOG_LEVEL_ALL);
-      LogComponentEnable ("Icmpv6L4Protocol", LOG_LEVEL_ALL);
-      LogComponentEnable ("Ping6Application", LOG_LEVEL_ALL);
-      LogComponentEnable ("NdiscCache", LOG_LEVEL_ALL);
+  int conns = nodes - 1;
+  std::vector<int> connSrc, connDst;
+  
+  // LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+  // LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+  if (verbose) {
+    LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+    LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+  }
+
+  if (inputFile != "") {
+    std::ifstream ifs(inputFile);
+    if (ifs.fail()) {
+      NS_LOG_ERROR("ファイル: " << inputFile << " を開けませんでした");
+      return 1;
     }
+
+    ifs >> nodes;
+    ifs >> conns;
+    connSrc.resize(conns);
+    connDst.resize(conns);
+    for (int i = 0, l = conns; i < l; ++i) {
+      ifs >> connSrc[i] >> connDst[i];
+      --connSrc[i];
+      --connDst[i];
+    }
+    ifs.close();
+
+    NS_LOG_INFO("ファイルから読み込みました:");
+    NS_LOG_INFO("  ノード数: " << nodes);
+    NS_LOG_INFO("  エッジ数: " << conns);
+    for (int i = 0, l = conns; i < l; ++i) {
+      NS_LOG_INFO("    " << connSrc[i] << " <-> " << connDst[i]);
+    }
+  } else {
+    connSrc.resize(conns);
+    connDst.resize(conns);
+    for (int i = 0, l = conns; i < l; ++i) {
+      connSrc[i] = i;
+      connDst[i] = i + 1;
+    }
+  }
 
   NS_LOG_INFO ("Create nodes.");
   NodeContainer ns;
-  int connections = nodes - 1;
   ns.Create(nodes);
 
-  // create p2p connections
+  // create p2p conns
   std::vector<NodeContainer> nc;
-  for (int i = 0, l = connections; i < l; ++i) {
-    nc.push_back(NodeContainer(ns.Get(i), ns.Get(i+1)));
+  for (int i = 0, l = conns; i < l; ++i) {
+    nc.push_back(NodeContainer(ns.Get(connSrc[i]), ns.Get(connDst[i])));
   }
 
   /* Install IPv4/IPv6 stack */
@@ -98,7 +129,7 @@ int main (int argc, char **argv)
   p2p.SetDeviceAttribute ("DataRate", DataRateValue (5000000));
   p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
   std::vector<NetDeviceContainer> devs;
-  for (int i = 0, l = connections; i < l; ++i) {
+  for (int i = 0, l = conns; i < l; ++i) {
     devs.push_back(p2p.Install(nc[i]));
   }
 
@@ -107,12 +138,12 @@ int main (int argc, char **argv)
   NS_LOG_INFO ("Assign IPv6 Addresses. base addr: " << Ipv6Address(addrBuf));
 
   std::vector<Ipv6InterfaceContainer> ifaces;
-  for (int i = 0, l = connections; i < l; ++i) {
+  for (int i = 0, l = conns; i < l; ++i) {
     addrBuf[5] = i + 1;
     ipv6.SetBase(Ipv6Address(addrBuf), Ipv6Prefix(64));
     ifaces.push_back(ipv6.Assign(devs[i]));
-    if (i != 0) ifaces[i].SetForwarding(0, true);
-    if (i != connections - 1) ifaces[i].SetForwarding(1, true);
+    ifaces[i].SetForwarding(0, true);
+    ifaces[i].SetForwarding(1, true);
   }
 
   NS_LOG_INFO ("Apply Routings.");

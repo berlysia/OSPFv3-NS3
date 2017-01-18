@@ -48,5 +48,13 @@ bool RoutingTable::AddRoute(Ipv6RoutingTableEntry &entry) {
 //     return true;
 // }
 
+
+std::ostream& operator<< (std::ostream& os, const RoutingTable& table) {
+    for (auto& entry : table.m_entries) {
+        os << entry << "\n";
+    }
+    return os;
+}
+
 }
 }

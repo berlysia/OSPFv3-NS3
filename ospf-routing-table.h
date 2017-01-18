@@ -35,6 +35,7 @@ namespace ospf {
         std::vector<Ipv6RoutingTableEntry>& GetCollection() {
             return m_entries;
         }
+        friend std::ostream& operator<< (std::ostream& os, const RoutingTable& table);
     private:
         std::vector<Ipv6RoutingTableEntry> m_entries;
     };
