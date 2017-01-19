@@ -5,8 +5,9 @@
 #include "ns3/ptr.h"
 #include "ns3/output-stream-wrapper.h"
 #include "ns3/ipv6-address.h"
-#include "ns3/ipv6-routing-table-entry.h"
 #include <vector>
+#include <unordered_map>
+#include <tuple>
 
 // OSPFv2 11 The Routing Table Structure
 // https://tools.ietf.org/html/rfc2328#page-107
@@ -16,6 +17,7 @@
 
 namespace ns3 {
 namespace ospf {
+    typedef uint32_t RouterId;
     class RoutingTable : public Object {
     public:
         RoutingTable();
@@ -25,19 +27,19 @@ namespace ospf {
                 .AddConstructor<RoutingTable>();
             return tid;
         }
-        bool AddRoute(Ipv6RoutingTableEntry &entry);
-        // bool RemoveRoute(Ipv6Address &dst);
-        bool LookupRoute(Ipv6Address &dst, Ipv6RoutingTableEntry &entry);
-        // bool Update(Ipv6RoutingTableEntry &entry);
-        void Clear() {
-            m_entries.clear();
-        }
-        std::vector<Ipv6RoutingTableEntry>& GetCollection() {
-            return m_entries;
-        }
+        RouterId LookupRoute(RouterId src, RouterId dst);
+        RouterId GetNearestRouter(Ipv6Address& addr, RouterId ignoreId = 0);
+        void AddFlow(RouterId src, RouterId dst, RouterId nextHop, uint16_t flowValue);
+        void AddRouter(Ipv6Address& addr, Ipv6Prefix& prefix, RouterId routerId);
+        void SetRouters(uint32_t routers);
+        void Reset();
+        void FinalizeFlow();
         friend std::ostream& operator<< (std::ostream& os, const RoutingTable& table);
     private:
-        std::vector<Ipv6RoutingTableEntry> m_entries;
+        uint32_t m_numOfRouters;
+        std::vector<std::vector<std::vector<uint16_t> > > m_nextHop_table; // [src][dst][nextHop] = flow
+        std::vector<std::vector<std::vector<float> > > m_nextProb_table; // [src][dst][nextHop] = flow
+        std::vector<std::tuple<Ipv6Address, Ipv6Prefix, RouterId> > m_router_tuples; // [RouterId] = addr
     };
 }
 }

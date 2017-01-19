@@ -69,8 +69,10 @@ int main (int argc, char **argv)
   int conns = nodes - 1;
   std::vector<int> connSrc, connDst;
   
-  // LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+  LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+  LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
+  LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+  // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
   if (verbose) {
     LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
     LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
@@ -98,7 +100,7 @@ int main (int argc, char **argv)
     NS_LOG_INFO("  ノード数: " << nodes);
     NS_LOG_INFO("  エッジ数: " << conns);
     for (int i = 0, l = conns; i < l; ++i) {
-      NS_LOG_INFO("    " << connSrc[i] << " <-> " << connDst[i]);
+      NS_LOG_INFO("    " << connSrc[i]+1 << " <-> " << connDst[i]+1);
     }
   } else {
     connSrc.resize(conns);
@@ -177,7 +179,7 @@ int main (int argc, char **argv)
   Ping6Helper ping6;
 
   ping6.SetLocal (ifaces[0].GetAddress (0, 1)); 
-  ping6.SetRemote (ifaces[ifaces.size() - 1].GetAddress (1, 1));
+  ping6.SetRemote (ifaces.back().GetAddress (1, 1));
   // ping6.SetIfIndex (i.GetInterfaceIndex (0));
   // ping6.SetRemote (Ipv6Address::GetAllNodesMulticast ());
 

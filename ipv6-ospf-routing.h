@@ -126,7 +126,7 @@ public:
     
     virtual void Start ();
 
-    virtual Ptr<Ipv6Route> Lookup(Ipv6Address dst, Ptr<NetDevice> interface = 0);
+    virtual Ptr<Ipv6Route> Lookup(Ipv6Address src, Ipv6Address dst, Ptr<NetDevice> interface = 0);
 
 protected:
     virtual void DoDispose ();
