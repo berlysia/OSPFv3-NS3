@@ -214,6 +214,9 @@ public:
     std::map<RouterId, NeighborData>& GetNeighbors() {
         return m_neighbors;
     }
+    uint32_t CountNeighbors () const {
+        return m_neighbors.size();
+    }
     uint32_t CountActiveNeighbors () const {
         uint32_t ret = 0;
         for (auto& kv : m_neighbors) {
