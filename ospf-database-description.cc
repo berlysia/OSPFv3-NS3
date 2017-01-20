@@ -29,20 +29,20 @@ vector<Ptr<OSPFLSAHeader> > m_lsaHeaders;
 */
 
 uint32_t OSPFDatabaseDescription::GetSerializedSize () const {
-    return OSPFHeader::GetSerializedSize() + 4 + 2 + 1 + 4 + 4 + m_lsaHeaders.size() * 20;
+    return OSPFHeader::GetSerializedSize() + 12 + m_lsaHeaders.size() * 20;
 } 
 void OSPFDatabaseDescription::Print (std::ostream &os) const {
     OSPFHeader::Print(os);
-    os << "## DatabaseDescription Packet \n";
-    os << "  options  : " << m_options << "\n";
-    os << "  MTU      : " << m_mtu << "\n";
+    os << "## DatabaseDescription Packet (";
+    os << "options: " << m_options << ", ";
+    os << "MTU: " << m_mtu << ", ";
     os << std::boolalpha;
-    os << "  isInit   : " << m_initFlag << "\n";
-    os << "  hasMore  : " << m_moreFlag << "\n";
-    os << "  isMaster : " << m_masterFlag << "\n";
+    os << "isInit: " << m_initFlag << ", ";
+    os << "hasMore: " << m_moreFlag << ", ";
+    os << "isMaster: " << m_masterFlag << ", ";
     os << std::noboolalpha;
-    os << "  ddSeqNum : " << m_ddSeqNum << "\n";
-    os << "  lsaHeaders: " << m_lsaHeaders.size() << "\n";
+    os << "ddSeqNum: " << m_ddSeqNum << ", ";
+    os << "lsaHeader: " << m_lsaHeaders.size() << ", ";
     for (int i = 0, l = m_lsaHeaders.size(); i < l; ++i) {
         m_lsaHeaders[i]->Print(os);
     }
