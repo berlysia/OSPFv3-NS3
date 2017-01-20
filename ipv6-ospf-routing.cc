@@ -94,7 +94,7 @@ void Ipv6OspfRouting::PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const
     NS_LOG_FUNCTION (m_routerId << stream);
     std::ostream* os = stream->GetStream ();
 
-    *os << "Node: " << m_ipv6->GetObject<Node> ()->GetId ()
+    *os << "Router: " << m_routerId
         << ", Time: " << Now().As (Time::S)
         << ", Local time: " << GetObject<Node> ()->GetLocalTime ().As (Time::S)
         << ", Ipv6OspfRouting table" << std::endl;

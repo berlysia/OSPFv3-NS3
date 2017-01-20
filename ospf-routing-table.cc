@@ -130,9 +130,12 @@ void RoutingTable::SetRouters(uint32_t routers) {
 }
 
 std::ostream& operator<< (std::ostream& os, const RoutingTable& table) {
-    // for (auto& entry : table.m_entries) {
-    //     os << entry << "\n";
-    // }
+    for (const auto& tup : table.m_router_tuples) {
+        const Ipv6Address& addr = std::get<0>(tup);
+        const Ipv6Prefix& prefix = std::get<1>(tup);
+        const RouterId id = std::get<2>(tup);
+        os << addr << prefix << " - router " << id << "\n";
+    }
     return os;
 }
 
