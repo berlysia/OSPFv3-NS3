@@ -209,8 +209,15 @@ public:
         return ret;
     }
 
-    void AddRxmtList(Ptr<OSPFLSA> lsa) {
+    bool AddRxmtList(Ptr<OSPFLSA> lsa) {
+        auto id = lsa->GetIdentifier();
+        for(auto& item : m_lsRxmtList) {
+            if (*item == id) {
+                return false;
+            }
+        }
         m_lsRxmtList.push_back(lsa);
+        return false;
     }
 
     bool HasInRxmtList (OSPFLinkStateIdentifier &id) {

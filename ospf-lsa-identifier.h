@@ -18,7 +18,7 @@ struct OSPFLinkStateIdentifier {
         : m_type(type), m_id(id), m_advRtr(advRtr) {}
     bool IsOriginatedBy (const uint32_t routerId, std::set<uint32_t>& rtrIfaceId_set) const {
         // 0x2002 is type value for network-LSA
-        return m_advRtr == routerId || (m_type == 0x2002 && rtrIfaceId_set.count(m_id));
+        return m_advRtr == routerId;
     }
     OSPFLinkStateIdentifier As(uint16_t type) const {
         return OSPFLinkStateIdentifier(type, m_id, m_advRtr);

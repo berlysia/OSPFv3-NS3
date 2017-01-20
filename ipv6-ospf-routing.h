@@ -38,6 +38,7 @@ private:
     static const Ipv6Address AllDRRouters;
 
     uint32_t m_routerId;
+    uint32_t m_knownMaxRouterId;
 
     typedef std::map< Ptr<Socket>, uint32_t > SocketToIfaceIdx;
     typedef std::map< uint32_t, Ptr<Socket> > IfaceIdxToSocket;
@@ -123,10 +124,12 @@ public:
 
     virtual void CalcRoutingTable (bool recalcAll = false);
     virtual int32_t GetInterfaceForNeighbor (RouterId routerId);
+    virtual void RegisterToLSDB (Ptr<OSPFLSA> lsa);
+    virtual void UpdateLSACaches (Ptr<OSPFLSA> lsa);
     
     virtual void Start ();
 
-    virtual Ptr<Ipv6Route> Lookup(Ipv6Address dst, Ptr<NetDevice> interface = 0);
+    virtual Ptr<Ipv6Route> Lookup(Ipv6Address src, Ipv6Address dst, Ptr<NetDevice> interface = 0);
 
 protected:
     virtual void DoDispose ();
