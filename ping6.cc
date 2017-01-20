@@ -63,24 +63,26 @@ int main (int argc, char **argv)
     [src] [dst] [dataRate]
     [src] [dst] [dataRate]
     ...
+    [ping pairs]
+    [src] [dst] [packets] [interval(milliseconds)] [size]
   */
   cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
 
   int conns = nodes - 1;
-  std::vector<int> connSrc, connDst, connDataRate, pingSrc, pingDst, hasPings, pingToNode;
+  int pingPairs = 1;
+  std::vector<int> connSrc, connDst, connDataRate;
+  std::vector<int> pingSrc, pingDst, hasPings, pingToNode, pingPackets, pingIntervals, pingSizes, pingStart, pingEnd;
   
-  // LogComponentEnable ("Ipv6Address", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6L3Protocol", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ping6Application", LOG_LEVEL_ALL);
-  LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
-  // LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
-  LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6StaticRouting", LOG_LEVEL_ALL);
-  // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
   if (verbose) {
+    // LogComponentEnable ("Ipv6Address", LOG_LEVEL_ALL);
+    // LogComponentEnable ("Ipv6L3Protocol", LOG_LEVEL_ALL);
+    // LogComponentEnable ("Ping6Application", LOG_LEVEL_ALL);
     LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
+    // LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
     LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+    // LogComponentEnable ("Ipv6StaticRouting", LOG_LEVEL_ALL);
+    // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
   }
 
   if (inputFile != "") {
@@ -98,17 +100,27 @@ int main (int argc, char **argv)
     connDataRate.resize(conns);
     for (int i = 0, l = conns; i < l; ++i) {
       ifs >> connSrc[i] >> connDst[i] >> connDataRate[i];
+      NS_LOG_INFO("read conn: src " << connSrc[i] << ", dst " << connDst[i] << ", rate " << connDataRate[i]);
       --connSrc[i];
       --connDst[i];
+    }
+    ifs >> pingPairs;
+    pingSrc.resize(pingPairs);
+    pingDst.resize(pingPairs);
+    pingPackets.resize(pingPairs);
+    pingIntervals.resize(pingPairs);
+    pingSizes.resize(pingPairs);
+    pingStart.resize(pingPairs);
+    pingEnd.resize(pingPairs);
+    for (int i = 0; i < pingPairs; ++i) {
+      ifs >> pingSrc[i] >> pingDst[i] >> pingPackets[i] >> pingIntervals[i] >> pingSizes[i] >> pingStart[i] >> pingEnd[i];
+      NS_LOG_INFO("read ping: src " << pingSrc[i] << ", dst " << pingDst[i] << ", Packets " << pingPackets[i] << ", Intervals " << pingIntervals[i] << ", Sizes " << pingSizes[i]);
+      --pingSrc[i];
+      --pingDst[i];
     }
     ifs.close();
 
     NS_LOG_INFO("ファイルから読み込みました:");
-    NS_LOG_INFO("  ノード数: " << nodes);
-    NS_LOG_INFO("  エッジ数: " << conns);
-    for (int i = 0, l = conns; i < l; ++i) {
-      NS_LOG_INFO("    " << connSrc[i]+1 << " <- [" << connDataRate[i] << "] -> " << connDst[i]+1);
-    }
   } else {
     NS_LOG_INFO("ノード数から自動生成します: ノード数 " << nodes);
     connSrc.resize(conns);
@@ -119,15 +131,17 @@ int main (int argc, char **argv)
       connDst[i] = i + 1;
       connDataRate[i] = 5000000;
     }
+    pingSrc.push_back(connSrc[0]);
+    pingDst.push_back(connDst.back());
   }
 
-  // FIXME
-  pingSrc.push_back(connSrc[0]);
-  pingDst.push_back(connDst.back());
-
-  NS_LOG_INFO("pingの送信関係:");
-  for (int i = 0, l = pingSrc.size(); i < l; ++i) {
-    NS_LOG_INFO("  " << pingSrc[i]+1 << " --> " << pingDst[i]+1);
+  NS_LOG_INFO("  ノード数: " << nodes);
+  NS_LOG_INFO("  エッジ数: " << conns);
+  for (int i = 0, l = conns; i < l; ++i) {
+    NS_LOG_INFO("    " << connSrc[i]+1 << " <- [" << connDataRate[i] << "] -> " << connDst[i]+1);
+  }
+  for (int i = 0, l = pingPairs; i < l; ++i) {
+    NS_LOG_INFO("    " << pingSrc[i]+1 << " --> " << pingDst[i]+1);
   }
 
   std::copy(pingSrc.begin(), pingSrc.end(), std::back_inserter(hasPings));
@@ -170,7 +184,7 @@ int main (int argc, char **argv)
     devs.push_back(p2p.Install(nc[i]));
   }
 
-  p2p.SetDeviceAttribute ("DataRate", DataRateValue (5000000));
+  p2p.SetDeviceAttribute ("DataRate", DataRateValue (1000000000));
   for (int i = 0, l = hasPings.size(); i < l; ++i) {
     pdevs.push_back(p2p.Install(unc[i]));
   }
@@ -197,10 +211,6 @@ int main (int argc, char **argv)
     ipv6.SetBase(Ipv6Address(addrBuf), Ipv6Prefix(64));
     pifaces.push_back(ipv6.Assign(pdevs[i]));
     pifaces[i].SetForwarding(0, true);
-    NS_LOG_INFO(pifaces[i].GetAddress(0, 0));
-    NS_LOG_INFO(pifaces[i].GetAddress(0, 1));
-    NS_LOG_INFO(pifaces[i].GetAddress(1, 0));
-    NS_LOG_INFO(pifaces[i].GetAddress(1, 1));
   }
 
   NS_LOG_INFO ("Apply Routings.");
@@ -243,17 +253,17 @@ int main (int argc, char **argv)
   // ping6.SetIfIndex (i.GetInterfaceIndex (0));
   // ping6.SetRemote (Ipv6Address::GetAllNodesMulticast ());
 
-  ping6.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
-  ping6.SetAttribute ("Interval", TimeValue (interPacketInterval));
-  ping6.SetAttribute ("PacketSize", UintegerValue (packetSize));
 
   for (int i = 0, l = pingSrc.size(); i < l; ++i) {
     NS_LOG_INFO("Install Ping6 to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
+    ping6.SetAttribute ("MaxPackets", UintegerValue (pingPackets[i]));
+    ping6.SetAttribute ("Interval", TimeValue (MicroSeconds(pingIntervals[i])));
+    ping6.SetAttribute ("PacketSize", UintegerValue (pingSizes[i]));
     ping6.SetLocal (pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1)); 
     ping6.SetRemote (pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
     ApplicationContainer apps = ping6.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
-    apps.Start (Seconds (100.0));
-    apps.Stop (Seconds (200.0));
+    apps.Start (Seconds (pingStart[i]));
+    apps.Stop (Seconds (pingEnd[i]));
   }
 
   AsciiTraceHelper ascii;
@@ -267,7 +277,7 @@ int main (int argc, char **argv)
   }
 
   NS_LOG_INFO ("Run Simulation.");
-  Simulator::Stop (Seconds(202));
+  Simulator::Stop (Seconds(300));
   Simulator::Run ();
   // Simulator::Destroy ();
   NS_LOG_INFO ("Done.");
