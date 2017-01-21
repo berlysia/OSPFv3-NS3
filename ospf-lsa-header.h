@@ -68,6 +68,25 @@ protected:
 
 public:
     OSPFLSAHeader () {};
+    OSPFLSAHeader (const OSPFLSAHeader &o) {
+        m_age = o.m_age;
+        m_type = o.m_type;
+        m_id = o.m_id;
+        m_advRtr = o.m_advRtr;
+        m_seqNum = o.m_seqNum;
+        m_checksum = o.m_checksum;
+        m_length = o.m_length;
+    };
+    OSPFLSAHeader &operator= (const OSPFLSAHeader &o) {
+        m_age = o.m_age;
+        m_type = o.m_type;
+        m_id = o.m_id;
+        m_advRtr = o.m_advRtr;
+        m_seqNum = o.m_seqNum;
+        m_checksum = o.m_checksum;
+        m_length = o.m_length;
+        return (*this);
+    };
     ~OSPFLSAHeader () {};
 
     static TypeId GetTypeId();
@@ -123,7 +142,7 @@ public:
         // if (m_checksum < other.m_checksum) return false;
         if (m_age == g_maxAge) return true;
         if (other.m_age == g_maxAge) return false;
-        if (abs(m_age - other.m_age) > g_maxAgeDiff) {
+        if (std::abs(m_age - other.m_age) > g_maxAgeDiff) {
             if (m_age < other.m_age) return true;
             if (m_age > other.m_age) return false;
         }
@@ -140,9 +159,12 @@ public:
 
     bool IsSameInstance (const OSPFLSAHeader &other) const {
         return (
+            m_type == other.m_type &&
+            m_id == other.m_id &&
+            m_advRtr == other.m_advRtr &&
             m_seqNum == other.m_seqNum &&
-            m_checksum == other.m_checksum &&
-            m_age == other.m_age &&
+            // m_checksum == other.m_checksum &&
+            // m_age == other.m_age &&
             m_age != g_maxAge &&
             other.m_age != g_maxAge
         );
