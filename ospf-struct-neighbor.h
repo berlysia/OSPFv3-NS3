@@ -217,7 +217,7 @@ public:
             }
         }
         m_lsRxmtList.push_back(lsa);
-        return false;
+        return true;
     }
 
     bool HasInRxmtList (OSPFLinkStateIdentifier &id) {

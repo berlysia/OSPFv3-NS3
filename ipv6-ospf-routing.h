@@ -126,6 +126,8 @@ public:
     virtual int32_t GetInterfaceForNeighbor (RouterId routerId);
     virtual void RegisterToLSDB (Ptr<OSPFLSA> lsa);
     virtual void UpdateLSACaches (Ptr<OSPFLSA> lsa);
+    virtual void AddToRxmtList (int32_t ifaceIdx, Ptr<OSPFLSA> lsa);
+    virtual void AddToRxmtList (int32_t ifaceIdx, RouterId neighborRouterId, Ptr<OSPFLSA> lsa);
     
     virtual void Start ();
 

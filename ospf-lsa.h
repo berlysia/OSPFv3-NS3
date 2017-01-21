@@ -35,6 +35,17 @@ public:
 
     static TypeId GetTypeId();
 
+    OSPFLSA& operator= (const OSPFLSA& o) {
+        m_header = o.m_header;
+        m_body = o.m_body;
+        return (*this);
+    }
+
+    void AgingBeforeFlooding (uint16_t aging) {
+        m_header = Ptr<OSPFLSAHeader>(new OSPFLSAHeader(*m_header));
+        m_header->SetAge(m_header->GetAge() + aging);
+    }
+
     virtual TypeId GetInstanceId (void) const {return GetTypeId();};
     virtual uint32_t Deserialize (Buffer::Iterator &i);
     virtual uint32_t GetSerializedSize () const; 

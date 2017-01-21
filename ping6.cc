@@ -271,11 +271,18 @@ int main (int argc, char **argv)
   p2p.EnablePcapAll (std::string ("ping6"), true);
 
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
-  int firstPingStart = *std::min_element(pingStart.begin(), pingStart.end());
-  int lastPingEnd = *std::max_element(pingEnd.begin(), pingEnd.end());
-  for (int i = 0, l = nodes; i < l; ++i) {
-    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (firstPingStart), ns.Get(i), routingStream);
-    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (lastPingEnd), ns.Get(i), routingStream);
+  if (pingPairs > 0) {
+    int firstPingStart = *std::min_element(pingStart.begin(), pingStart.end());
+    int lastPingEnd = *std::max_element(pingEnd.begin(), pingEnd.end());
+    for (int i = 0, l = nodes; i < l; ++i) {
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (firstPingStart), ns.Get(i), routingStream);
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (lastPingEnd), ns.Get(i), routingStream);
+    }
+  } else {
+    for (int i = 0, l = nodes; i < l; ++i) {
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (10), ns.Get(i), routingStream);
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (250), ns.Get(i), routingStream);
+    }
   }
 
   NS_LOG_INFO ("Run Simulation.");
