@@ -80,7 +80,7 @@ int main (int argc, char **argv)
     // LogComponentEnable ("Ping6Application", LOG_LEVEL_ALL);
     LogComponentEnable ("Ping6Example", LOG_LEVEL_ALL);
     // LogComponentEnable ("RoutingTable", LOG_LEVEL_ALL);
-    LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
+    // LogComponentEnable ("Ipv6OspfRouting", LOG_LEVEL_ALL);
     // LogComponentEnable ("Ipv6StaticRouting", LOG_LEVEL_ALL);
     // LogComponentEnable ("Ipv6RawSocketImpl", LOG_LEVEL_ALL);
   }
@@ -101,8 +101,8 @@ int main (int argc, char **argv)
     for (int i = 0, l = conns; i < l; ++i) {
       ifs >> connSrc[i] >> connDst[i] >> connDataRate[i];
       NS_LOG_INFO("read conn: src " << connSrc[i] << ", dst " << connDst[i] << ", rate " << connDataRate[i]);
-      --connSrc[i];
-      --connDst[i];
+      connSrc[i];
+      connDst[i];
     }
     ifs >> pingPairs;
     pingSrc.resize(pingPairs);
@@ -115,8 +115,8 @@ int main (int argc, char **argv)
     for (int i = 0; i < pingPairs; ++i) {
       ifs >> pingSrc[i] >> pingDst[i] >> pingPackets[i] >> pingIntervals[i] >> pingSizes[i] >> pingStart[i] >> pingEnd[i];
       NS_LOG_INFO("read ping: src " << pingSrc[i] << ", dst " << pingDst[i] << ", Packets " << pingPackets[i] << ", Intervals " << pingIntervals[i] << ", Sizes " << pingSizes[i]);
-      --pingSrc[i];
-      --pingDst[i];
+      pingSrc[i];
+      pingDst[i];
     }
     ifs.close();
 
@@ -138,10 +138,10 @@ int main (int argc, char **argv)
   NS_LOG_INFO("  ノード数: " << nodes);
   NS_LOG_INFO("  エッジ数: " << conns);
   for (int i = 0, l = conns; i < l; ++i) {
-    NS_LOG_INFO("    " << connSrc[i]+1 << " <- [" << connDataRate[i] << "] -> " << connDst[i]+1);
+    NS_LOG_INFO("    " << connSrc[i] << " <- [" << connDataRate[i] << "] -> " << connDst[i]);
   }
   for (int i = 0, l = pingPairs; i < l; ++i) {
-    NS_LOG_INFO("    " << pingSrc[i]+1 << " --> " << pingDst[i]+1);
+    NS_LOG_INFO("    " << pingSrc[i] << " --> " << pingDst[i]);
   }
 
   std::copy(pingSrc.begin(), pingSrc.end(), std::back_inserter(hasPings));
@@ -154,17 +154,20 @@ int main (int argc, char **argv)
   ns.Create(nodes + hasPings.size());
 
   // create p2p conns
+  NS_LOG_INFO ("Create connections.");
   std::vector<NodeContainer> nc;
   for (int i = 0, l = conns; i < l; ++i) {
     nc.push_back(NodeContainer(ns.Get(connSrc[i]), ns.Get(connDst[i])));
   }
   
+  NS_LOG_INFO ("Create connections for ping pairs.");
   // create user network
   std::vector<NodeContainer> unc;
   for (int i = 0, l = hasPings.size(); i < l; ++i) {
     unc.push_back(NodeContainer(ns.Get(hasPings[i]), ns.Get(nodes + i)));
   }
 
+  NS_LOG_INFO ("Create mapping for ping user node.");
   pingToNode.resize(nodes+1);
   for (int i = 0, l = hasPings.size(); i < l; ++i) {
     pingToNode[hasPings[i]] = i;
