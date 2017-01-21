@@ -177,7 +177,7 @@ int main (int argc, char **argv)
 
   NS_LOG_INFO ("Create channels.");
   PointToPointHelper p2p;
-  p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (20)));
   std::vector<NetDeviceContainer> devs, pdevs;
   for (int i = 0, l = conns; i < l; ++i) {
     p2p.SetDeviceAttribute ("DataRate", DataRateValue (connDataRate[i]));
