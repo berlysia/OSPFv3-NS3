@@ -136,6 +136,20 @@ std::ostream& operator<< (std::ostream& os, const RoutingTable& table) {
         const RouterId id = std::get<2>(tup);
         os << addr << prefix << " - router " << id << "\n";
     }
+
+    float diff = 0.0f;
+    for (uint32_t i = 1, il = table.m_numOfRouters; i < il; ++i) {
+        for (uint32_t j = 1, jl = table.m_numOfRouters; j < jl; ++j) {
+            if (i == j) continue;
+            const std::vector<float>& probs = table.m_nextProb_table[i][j];
+            os << "[src "<<i<<"][dst "<<j<<"]\n";
+            for (uint32_t k = 1, kl = table.m_numOfRouters; k < kl; ++k) {
+                diff = probs[k] - probs[k-1];
+                if (std::abs(diff) < 1e-6) continue;
+                os << "[src "<<i<<"][dst "<<j<<"][next "<<k<<"]: " << probs[k] << "\n";
+            }
+        }
+    }
     return os;
 }
 

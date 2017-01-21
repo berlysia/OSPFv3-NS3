@@ -2071,6 +2071,7 @@ Ptr<Ipv6Route> Ipv6OspfRouting::Lookup(Ipv6Address src, Ipv6Address dst, Ptr<Net
                         ifaceAddr.GetScope() == Ipv6InterfaceAddress::GLOBAL &&
                         ifaceAddr.GetPrefix().IsMatch(ifaceAddr.GetAddress(), dst)
                     ) {
+                        NS_LOG_INFO("Lookup succeeded - direct connected");
                         route = Create<Ipv6Route>();
                         route->SetSource(ifaceAddr.GetAddress());
                         route->SetDestination(dst);
@@ -2089,7 +2090,7 @@ Ptr<Ipv6Route> Ipv6OspfRouting::Lookup(Ipv6Address src, Ipv6Address dst, Ptr<Net
     NS_LOG_INFO(std::boolalpha << "isSender: " << isSender << ", isReceiver: " << isReceiver << std::noboolalpha << ", srcRtr: " << srcRtr << ", dstRtr: " << dstRtr << ", nextHop: " << nextHopRouterId);
 
     if (nextHopRouterId != 0) {
-        NS_LOG_LOGIC("Lookup succeeded");
+        NS_LOG_INFO("Lookup succeeded");
         int32_t ifaceIdx = GetInterfaceForNeighbor(nextHopRouterId);
         NS_LOG_LOGIC("ifaceIdx: " << ifaceIdx);
         route = Create<Ipv6Route>();
@@ -2111,7 +2112,7 @@ Ptr<Ipv6Route> Ipv6OspfRouting::Lookup(Ipv6Address src, Ipv6Address dst, Ptr<Net
         return route;
     }
 
-    NS_LOG_LOGIC("Lookup failed");
+    NS_LOG_INFO("Lookup failed");
 
     return 0;
 }
@@ -2124,7 +2125,7 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     static uint16_t MAX_METRIC = 65535; // 2 ** 16 - 1
     static RouterId MAX_ROUTER_ID = 4294967295; // 2**32 - 1
     uint32_t routers = m_knownMaxRouterId + 1; // 0 is reserved
-    NS_LOG_INFO("CalcRoutingTable - routerId: " << m_routerId << ", routers: " << routers);
+    // NS_LOG_LOGIC("CalcRoutingTable - routerId: " << m_routerId << ", routers: " << routers);
 
     std::vector<std::vector<uint16_t> > capacityTable, flowTable; // [from][to] = capacity
     std::vector<std::vector<RouterId> > adjacentTable; // [from][idx] = to;
@@ -2136,16 +2137,16 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     routingTable.resize(routers, std::vector<NextHopEntries>(routers));
 
 
-    NS_LOG_INFO("print entire LSDB");
+    // NS_LOG_LOGIC("print entire LSDB");
     for (auto& kv : m_lsdb.GetTable()) {
-        NS_LOG_INFO(" - " << *kv.second);
+        // NS_LOG_LOGIC(" - " << *kv.second);
     }
 
     // build table
-    NS_LOG_INFO("build table");
+    // NS_LOG_LOGIC("build table");
     for (auto& id : m_routerLSA_set) {
         Ptr<OSPFLSA> rtrLSA = m_lsdb.Get(id);
-        NS_LOG_INFO("building ... " << *rtrLSA);
+        // NS_LOG_LOGIC("building ... " << *rtrLSA);
         RouterId routerId = rtrLSA->GetHeader()->GetAdvertisingRouter();
         auto rtrBody = rtrLSA->GetBody<OSPFRouterLSABody>();
         for (uint32_t idx = 0, l = rtrBody->CountNeighbors(); idx < l; ++idx) {
@@ -2157,11 +2158,11 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
         }
     }
 
-    NS_LOG_LOGIC("print calculation table for #router: " << m_routerId);
+    // NS_LOG_LOGIC("print calculation table for #router: " << m_routerId);
     for (int c = 1, cl = routers; c < cl; ++c) {
         for (int r = 1, rl = routers; r < rl; ++r) {
             if (capacityTable[c][r] != 0) {
-                NS_LOG_LOGIC("  " << c << " -> " << r << " => " << capacityTable[c][r]);
+                // NS_LOG_LOGIC("  " << c << " -> " << r << " => " << capacityTable[c][r]);
             }
         }
     }
@@ -2180,11 +2181,11 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
 
             for (auto& row: flowTable) fill(row.begin(), row.end(), 0);
 
-            NS_LOG_LOGIC("iterate: " << src << " -> " << dst << " 経路を探します");
+            // NS_LOG_LOGIC("iterate: " << src << " -> " << dst << " 経路を探します");
 
             for (;;) {
                 // 階層算出
-                NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "levelを計算します");
+                // NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "levelを計算します");
                 que.push(src);
                 level.assign(routers, -1);
                 level[src] = 0;
@@ -2199,30 +2200,25 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                     }
                 }
 
-                NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "levelを表示します");
+                // NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "levelを表示します");
                 for (int i = 1, l = routers; i < l; ++i) {
-                    NS_LOG_LOGIC("  " << i << ": " << level[i]);
+                    // NS_LOG_LOGIC("  " << i << ": " << level[i]);
                 }
 
                 if (level[dst] == -1) {
-                    NS_LOG_LOGIC("iterate end: level["<<dst<<"] == -1");
-                    break; // END
-                }
-
-                if (iter[src] == routers) {
-                    NS_LOG_LOGIC("iterate end: iter["<<src<<"] == " << routers);
+                    // NS_LOG_LOGIC("iterate end: level["<<dst<<"] == -1");
                     break; // END
                 }
                 
                 // 増加道算出
-                NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "aug-pathを計算します");
+                // NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "aug-pathを計算します");
 
                 routeFlow = 65535;
                 iter.assign(routers, 0);
                 sta.push(src);
                 while (!sta.empty()) {
                     curr = sta.top();
-                    NS_LOG_LOGIC("curr: " << curr << ", iter: " << iter[curr] << ", dst: " << dst);
+                    // NS_LOG_LOGIC("curr: " << curr << ", iter: " << iter[curr] << ", dst: " << dst);
                     if (curr == dst) {
                         // 経路をたどってMTU算出
                         std::vector<RouterId> routeFrom, routeTo;
@@ -2241,8 +2237,12 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
 
                         if (nextHop != MAX_ROUTER_ID) {
                             // routingTable[src][dst][nextHop] = routeFlow;
-                            NS_LOG_LOGIC("AddFlow: src " << src << ", dst " << dst << ", nextHop " << nextHop << ", flow " << routeFlow);
+                            NS_LOG_INFO("AddFlow: src " << src << ", dst " << dst << ", nextHop " << nextHop << ", flow " << routeFlow);
                             m_routingTable.AddFlow(src, dst, nextHop, routeFlow);
+                        }
+                        // NS_LOG_INFO("route ("<<src<<" -> "<<dst<<"): " << dst);
+                        for (int i = 0, l = routeFrom.size(); i < l; ++i) {
+                            // NS_LOG_INFO("     <- " << routeFrom[i]);
                         }
                         for (int i = 0, l = routeFrom.size(); i < l; ++i) {
                             // routingTables[routeFrom[i]][src][dst][routeTo[i]] = routeFlow;
@@ -2254,10 +2254,14 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                     }
 
                     for (RouterId& next = iter[curr]; next < routers; ++next) {
+                        // NS_LOG_LOGIC("  curr: " << curr << ", next: " << next << ", capacity: "<< capacityTable[curr][next]);
                         if (capacityTable[curr][next] == 0) continue;
-                        NS_LOG_LOGIC("  curr: " << curr << ", next: " << next);
-                        NS_LOG_LOGIC("  level["<<curr<<"] < level["<<next<<"] = " << level[curr] << " < " << level[next] << "(" << std::boolalpha << (level[curr] < level[next]) << std::noboolalpha << ")");
-                        NS_LOG_LOGIC(", caps["<<curr<<"]["<<next<<"]: " << (capacityTable[curr][next] - flowTable[curr][next]) << " => " << (level[curr] < level[next] && (capacityTable[curr][next] - flowTable[curr][next]) > 0));
+                        /*
+                        NS_LOG_LOGIC(
+                            "  level["<<curr<<"] < level["<<next<<"] = " << level[curr] << " < " << level[next] << "(" << std::boolalpha << (level[curr] < level[next]) << ")"
+                            << ", caps["<<curr<<"]["<<next<<"]: " << (capacityTable[curr][next] - flowTable[curr][next]) << " => " << (level[curr] < level[next] && (capacityTable[curr][next] - flowTable[curr][next] > 0)) << std::noboolalpha
+                        );
+                        //*/
                         if (level[curr] < level[next] && (capacityTable[curr][next] - flowTable[curr][next]) > 0) {
                             sta.push(next);
                             ++next;
@@ -2265,9 +2269,14 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                         }
                     }
                     if (iter[sta.top()] == routers) {
-                        NS_LOG_LOGIC("poped " << sta.top() << ": iter["<<sta.top()<<"]: == "<<routers<<" => " << (iter[curr] == routers));
+                        // NS_LOG_LOGIC("poped " << sta.top() << ": iter["<<sta.top()<<"]: == "<<routers<<" => " << (iter[curr] == routers));
                         sta.pop();
                     }
+                }
+
+                if (iter[src] == routers) {
+                    NS_LOG_LOGIC("iterate end: iter["<<src<<"] == " << routers);
+                    break; // END
                 }
             }
         }
@@ -2285,17 +2294,17 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     //     }
     // }
 
-    NS_LOG_INFO("# rebuild network structure");
+    // NS_LOG_LOGIC("# rebuild network structure");
     // ルータからネットワークを復元する
     for (auto& id : m_intraAreaPrefixLSA_set) {
-        NS_LOG_INFO("iterate...");
+        // NS_LOG_LOGIC("iterate...");
         Ptr<OSPFLSA> lsa = m_lsdb.Get(id);
         RouterId originateRouterId = lsa->GetHeader()->GetAdvertisingRouter();
         Ptr<OSPFIntraAreaPrefixLSABody> body = lsa->GetBody<OSPFIntraAreaPrefixLSABody>();
         // bool isSelfOriginated = id.IsOriginatedBy(m_routerId, m_rtrIfaceId_set);
 
         if (body->GetReferenceType() == OSPF_LSA_TYPE_ROUTER) {
-            NS_LOG_INFO("prefixes: " << body->CountPrefixes());
+            // NS_LOG_LOGIC("prefixes: " << body->CountPrefixes());
             for (uint32_t idx = 0, l = body->CountPrefixes(); idx < l; ++idx) {
                 // self originatedな場合、自明にdirectly connected
                 // Ipv6RoutingTableEntry* rtentry = new Ipv6RoutingTableEntry();
@@ -2306,7 +2315,7 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                 //         m_ipv6->GetInterfaceForPrefix(address, prefix) :
                 //         GetInterfaceForNeighbor(m_routingTable.GetNextHopTo(originateRouterId))
                 // );
-                NS_LOG_INFO("address: " << address << ", " << prefix << " , originateRouterId: " << originateRouterId);
+                // NS_LOG_INFO("address: " << address << ", " << prefix << " , originateRouterId: " << originateRouterId);
                 m_routingTable.AddRouter(address, prefix, originateRouterId);
                 // if (ifaceIdx < 0) continue;
                 // *rtentry = Ipv6RoutingTableEntry::CreateNetworkRouteTo(
