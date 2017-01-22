@@ -277,8 +277,8 @@ int main (int argc, char **argv)
   int firstPingStart = 10;
   int lastPingEnd = 40;
   if (pingPairs > 0) {
-    int firstPingStart = *std::min_element(pingStart.begin(), pingStart.end());
-    int lastPingEnd = *std::max_element(pingEnd.begin(), pingEnd.end());
+    firstPingStart = *std::min_element(pingStart.begin(), pingStart.end());
+    lastPingEnd = *std::max_element(pingEnd.begin(), pingEnd.end());
   }
   for (int i = 0, l = nodes; i < l; ++i) {
     ipv6RoutingHelper.PrintRoutingTableAt (Seconds (firstPingStart - 1), ns.Get(i), routingStream);
