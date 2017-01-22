@@ -21,13 +21,23 @@ NS_LOG_COMPONENT_DEFINE ("Ping6Example");
 #if 1
 int main (int argc, char **argv)
 {
-  bool verbose = false;
+  bool verbose = false, printTable = false;
   int nodes = 2;
-  std::string inputFile = "";
+  int waitTime = 10;
+  int delay = 20;
+  unsigned long long dataRate = 1000000;
+  std::string inputFile = "", outputDir = "";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "turn on log components", verbose);
+  cmd.AddValue ("printTable", "turn on log components", printTable);
   cmd.AddValue ("inputFile", "input file name", inputFile);
+  cmd.AddValue ("outputDir", "input directory name", outputDir);
+  cmd.AddValue ("waitTime", "input wait time after ping finished(sec)", waitTime);
+  cmd.AddValue ("delay", "input delay time(ms)", delay);
+  cmd.AddValue ("dataRate", "input dataRate time(sec)", dataRate);
+  cmd.AddValue ("nodes", "number of nodes", nodes);
+  cmd.Parse (argc, argv);
   /*
     # input file format (1-indexed)
 
@@ -39,12 +49,18 @@ int main (int argc, char **argv)
     [ping pairs]
     [src] [dst] [packets] [interval(milliseconds)] [size]
   */
-  cmd.AddValue ("nodes", "number of nodes", nodes);
-  cmd.Parse (argc, argv);
+
+  std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << "\n";
+  std::cout << "inputFile: " << inputFile << "\n";
+  std::cout << "waitTime: " << waitTime << "\n";
+  std::cout << "delay: " << delay << "\n";
+  std::cout << "dataRate: " << dataRate << "\n";
+  std::cout << "nodes: " << nodes << "\n";
+  std::cout << std::endl;
 
   int conns = nodes - 1;
   int pingPairs = 1;
-  std::vector<int> connSrc, connDst, connDataRate;
+  std::vector<int> connSrc, connDst;
   std::vector<int> pingSrc, pingDst, hasPings, pingToNode, pingPackets, pingIntervals, pingSizes, pingStart, pingEnd;
   
   if (verbose) {
@@ -70,14 +86,17 @@ int main (int argc, char **argv)
     ifs >> conns;
     connSrc.resize(conns);
     connDst.resize(conns);
-    connDataRate.resize(conns);
     for (int i = 0, l = conns; i < l; ++i) {
-      ifs >> connSrc[i] >> connDst[i] >> connDataRate[i];
-      NS_LOG_INFO("read conn: src " << connSrc[i] << ", dst " << connDst[i] << ", rate " << connDataRate[i]);
+      ifs >> connSrc[i] >> connDst[i];
+      NS_LOG_INFO("read conn: src " << connSrc[i] << ", dst " << connDst[i]);
       connSrc[i];
       connDst[i];
     }
-    ifs >> pingPairs;
+    if (ifs.good()) {
+      ifs >> pingPairs;
+    } else {
+      pingPairs = 0;
+    }
     pingSrc.resize(pingPairs);
     pingDst.resize(pingPairs);
     pingPackets.resize(pingPairs);
@@ -98,11 +117,11 @@ int main (int argc, char **argv)
     NS_LOG_INFO("ノード数から自動生成します: ノード数 " << nodes);
     connSrc.resize(conns);
     connDst.resize(conns);
-    connDataRate.resize(conns);
+    // connDataRate.resize(conns);
     for (int i = 0, l = conns; i < l; ++i) {
       connSrc[i] = i;
       connDst[i] = i + 1;
-      connDataRate[i] = 5000000;
+      // connDataRate[i] = 5000000;
     }
     pingSrc.push_back(connSrc[0]);
     pingDst.push_back(connDst.back());
@@ -111,7 +130,7 @@ int main (int argc, char **argv)
   NS_LOG_INFO("  ノード数: " << nodes);
   NS_LOG_INFO("  エッジ数: " << conns);
   for (int i = 0, l = conns; i < l; ++i) {
-    NS_LOG_INFO("    " << connSrc[i] << " <- [" << connDataRate[i] << "] -> " << connDst[i]);
+    NS_LOG_INFO("    " << connSrc[i] << " <---> " << connDst[i]);
   }
   for (int i = 0, l = pingPairs; i < l; ++i) {
     NS_LOG_INFO("    " << pingSrc[i] << " --> " << pingDst[i]);
@@ -153,10 +172,10 @@ int main (int argc, char **argv)
 
   NS_LOG_INFO ("Create channels.");
   PointToPointHelper p2p;
-  p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (20)));
+  p2p.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (delay)));
   std::vector<NetDeviceContainer> devs, pdevs;
   for (int i = 0, l = conns; i < l; ++i) {
-    p2p.SetDeviceAttribute ("DataRate", DataRateValue (connDataRate[i]));
+    p2p.SetDeviceAttribute ("DataRate", DataRateValue (dataRate));
     devs.push_back(p2p.Install(nc[i]));
   }
 
@@ -240,23 +259,30 @@ int main (int argc, char **argv)
   }
 
   AsciiTraceHelper ascii;
-  p2p.EnableAsciiAll (ascii.CreateFileStream ("ping6.tr"));
-  p2p.EnablePcapAll (std::string ("ping6"), true);
+  if (outputDir != "") {
+    p2p.EnableAsciiAll (ascii.CreateFileStream (outputDir + "/ping6.tr"));
+    p2p.EnablePcapAll (std::string (outputDir + "/ping6"), true);
+  } else {
+    p2p.EnableAsciiAll (ascii.CreateFileStream ("ping6.tr"));
+    p2p.EnablePcapAll (std::string ("ping6"), true);
+  }
 
-  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
   int firstPingStart = 10;
   int lastPingEnd = 40;
   if (pingPairs > 0) {
     firstPingStart = *std::min_element(pingStart.begin(), pingStart.end());
     lastPingEnd = *std::max_element(pingEnd.begin(), pingEnd.end());
   }
-  for (int i = 0, l = nodes; i < l; ++i) {
-    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (firstPingStart - 1), ns.Get(i), routingStream);
-    ipv6RoutingHelper.PrintRoutingTableAt (Seconds (lastPingEnd + 1), ns.Get(i), routingStream);
+  if (printTable) {
+    Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
+    for (int i = 0, l = nodes; i < l; ++i) {
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (firstPingStart - 1), ns.Get(i), routingStream);
+      ipv6RoutingHelper.PrintRoutingTableAt (Seconds (lastPingEnd + 1), ns.Get(i), routingStream);
+    }
   }
 
   NS_LOG_INFO ("Run Simulation.");
-  Simulator::Stop (Seconds(lastPingEnd + 100));
+  Simulator::Stop (Seconds(lastPingEnd + waitTime));
   Simulator::Run ();
   // Simulator::Destroy ();
   NS_LOG_INFO ("Done.");
