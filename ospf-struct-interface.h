@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <algorithm>
 
 namespace ns3 {
 namespace ospf {
@@ -100,6 +101,7 @@ public:
         m_helloTimer.SetDelay(m_helloInterval);
         m_waitTimer = Timer(Timer::REMOVE_ON_DESTROY);
         m_waitTimer.SetDelay(m_routerDeadInterval);
+        std::fill(m_authenticationKey, m_authenticationKey+8, 0);
     }
 
     void ResetInstance () {
