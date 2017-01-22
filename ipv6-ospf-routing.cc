@@ -724,16 +724,16 @@ void Ipv6OspfRouting::OriginateIntraAreaPrefixLSA(bool forceRefresh) {
         if (ifaceData.IsState(InterfaceState::DOWN)) continue;
 
         // Link Typeが2の場合、LA-bitが立ったプレフィクスだけを追加する
-        bool onlyLocal = !(
-            ifaceData.GetType() == InterfaceType::P2P ||
-            ifaceData.GetType() == InterfaceType::VIRTUAL
-        );
+        // bool onlyLocal = !(
+        //     ifaceData.GetType() == InterfaceType::P2P ||
+        //     ifaceData.GetType() == InterfaceType::VIRTUAL
+        // );
 
         // リンクがP2Mの場合かLOOPBACKであるとき、グローバルスコープIPv6アドレスが存在するなら、128ビット、距離0で追加する(LA-bitも？)
-        bool perfectPrefix = (
-            ifaceData.GetType() == InterfaceType::P2M ||
-            ifaceData.IsState(InterfaceState::LOOPBACK)
-        );
+        // bool perfectPrefix = (
+        //     ifaceData.GetType() == InterfaceType::P2M ||
+        //     ifaceData.IsState(InterfaceState::LOOPBACK)
+        // );
 
         // それ以外では、グローバルなプレフィクスを全て追加する。メトリックはインターフェイスに従う。
         uint16_t metric = CalcMetricForInterface(ifaceIdx);
@@ -1472,7 +1472,7 @@ void Ipv6OspfRouting::ReceiveLinkStateAckPacket(uint32_t ifaceIdx, Ptr<Packet> p
     }
     
     std::vector<Ptr<OSPFLSA> >& rxmtList = neighData.GetRxmtList();
-    std::vector<Ptr<OSPFLSAHeader> >& lsaList = lsaPacket.GetLSAHeaders();
+    // std::vector<Ptr<OSPFLSAHeader> >& lsaList = lsaPacket.GetLSAHeaders();
     for (auto ackedLsaHdr : lsaPacket.GetLSAHeaders()) {
         for (auto iter = rxmtList.begin(); iter != rxmtList.end(); ) {
             if (ackedLsaHdr->IsSameInstance(*((*iter)->GetHeader()))) {
@@ -1807,7 +1807,7 @@ void Ipv6OspfRouting::SendHelloPacket(uint32_t ifaceIdx) {
     packet->AddHeader(hello);
 
     Ptr<Socket> socket = m_ifaceIdxToSocket[ifaceIdx];
-    int res = socket->SendTo(packet, 0, Inet6SocketAddress(Ipv6OspfRouting::AllSPFRouters, PROTO_PORT));
+    socket->SendTo(packet, 0, Inet6SocketAddress(Ipv6OspfRouting::AllSPFRouters, PROTO_PORT));
     
     Simulator::ScheduleNow(&InterfaceData::ScheduleHello, &ifaceData);
 }
@@ -2079,10 +2079,10 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     std::vector<RouterId> prevs(routers, 0); // 0は経路なしなので存在確認不要
     costs[m_routerId] = 0;
 
-    NS_LOG_INFO("print entire LSDB");
-    for (auto& kv : m_lsdb.GetTable()) {
-        NS_LOG_INFO(" - " << *kv.second);
-    }
+    // NS_LOG_LOGIC("print entire LSDB");
+    // for (auto& kv : m_lsdb.GetTable()) {
+        // NS_LOG_LOGIC(" - " << *kv.second);
+    // }
 
     // build table
     NS_LOG_INFO("build table");
