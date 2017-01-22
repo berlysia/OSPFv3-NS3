@@ -91,7 +91,7 @@ void OSPFIntraAreaPrefixLSABody::Serialize (Buffer::Iterator &i) const {
         addr.GetBytes(buf);
 
         uint8_t bufSize = (length + 31) / 32 * 4;
-        for (int j = 0, ll = (length + 31) / 32 * 4; j < ll; ++j) {
+        for (int j = 0, ll = bufSize; j < ll; ++j) {
             i.WriteU8(buf[j]);
         }
 
