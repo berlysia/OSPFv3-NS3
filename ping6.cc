@@ -51,7 +51,9 @@ int main (int argc, char **argv)
   */
 
   std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << "\n";
+  std::cout << "printTable: " << printTable << "\n";
   std::cout << "inputFile: " << inputFile << "\n";
+  std::cout << "outputDir: " << outputDir << "\n";
   std::cout << "waitTime: " << waitTime << "\n";
   std::cout << "delay: " << delay << "\n";
   std::cout << "dataRate: " << dataRate << "\n";
