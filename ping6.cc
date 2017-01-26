@@ -25,6 +25,7 @@ int main (int argc, char **argv)
   int nodes = 2;
   int waitTime = 10;
   int delay = 1000; // 0.001s = 1ms = 1000μs
+  int maxPackets = 100;
   unsigned long long dataRate = 1000000;
   std::string inputFile = "", outputDir = "";
 
@@ -36,6 +37,7 @@ int main (int argc, char **argv)
   cmd.AddValue ("waitTime", "input wait time after ping finished(sec)", waitTime);
   cmd.AddValue ("delay", "input delay time(μs)", delay);
   cmd.AddValue ("dataRate", "input dataRate time(sec)", dataRate);
+  cmd.AddValue ("maxPackets", "input maxPackets", maxPackets);
   cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
   /*
@@ -173,6 +175,8 @@ int main (int argc, char **argv)
   internetv6.Install (ns);
 
   NS_LOG_INFO ("Create channels.");
+  Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (maxPackets));
+
   PointToPointHelper p2p;
   p2p.SetChannelAttribute ("Delay", TimeValue (MicroSeconds (delay)));
   std::vector<NetDeviceContainer> devs, pdevs;
