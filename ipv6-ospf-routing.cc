@@ -801,7 +801,7 @@ uint16_t Ipv6OspfRouting::CalcMetricForInterface (uint32_t ifaceIdx) {
         if (val <= 15260) {
             return 65535;
         }
-        return (uint16_t)(1e9 / dataRateValue.Get().GetBitRate());
+        return (uint16_t)(1e8 / dataRateValue.Get().GetBitRate());
     } else {
         NS_LOG_ERROR("unknown interface device type:" << netDevice);
     }
@@ -2122,7 +2122,7 @@ typedef std::unordered_map<RouterId, uint16_t> NextHopEntries;
 
 void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     NS_LOG_FUNCTION(m_routerId << recalcAll);
-    static uint16_t MAX_METRIC = 65535; // 2 ** 16 - 1
+    // static uint16_t MAX_METRIC = 65535; // 2 ** 16 - 1
     static RouterId MAX_ROUTER_ID = 4294967295; // 2**32 - 1
     uint32_t routers = m_knownMaxRouterId + 1; // 0 is reserved
     // NS_LOG_LOGIC("CalcRoutingTable - routerId: " << m_routerId << ", routers: " << routers);
@@ -2144,17 +2144,31 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
 
     // build table
     // NS_LOG_LOGIC("build table");
+    uint16_t maxCost = 0;
     for (auto& id : m_routerLSA_set) {
         Ptr<OSPFLSA> rtrLSA = m_lsdb.Get(id);
         // NS_LOG_LOGIC("building ... " << *rtrLSA);
         RouterId routerId = rtrLSA->GetHeader()->GetAdvertisingRouter();
         auto rtrBody = rtrLSA->GetBody<OSPFRouterLSABody>();
         for (uint32_t idx = 0, l = rtrBody->CountNeighbors(); idx < l; ++idx) {
-            uint16_t caps = MAX_METRIC - rtrBody->GetMetric(idx);
+            uint16_t caps = rtrBody->GetMetric(idx);
             RouterId neighId = rtrBody->GetNeighborRouterId(idx);
             capacityTable[routerId][neighId] = caps;
+            if (maxCost < caps) maxCost = caps;
             adjacentTable[routerId].push_back(neighId);
-            NS_LOG_LOGIC("add route base table: " << routerId << " -> " << neighId << ", capacity: " << caps);
+        }
+    }
+
+    double maxCost_f = maxCost;
+    for (auto& id : m_routerLSA_set) {
+        Ptr<OSPFLSA> rtrLSA = m_lsdb.Get(id);
+        RouterId routerId = rtrLSA->GetHeader()->GetAdvertisingRouter();
+        auto rtrBody = rtrLSA->GetBody<OSPFRouterLSABody>();
+        for (uint32_t idx = 0, l = rtrBody->CountNeighbors(); idx < l; ++idx) {
+            RouterId neighId = rtrBody->GetNeighborRouterId(idx);
+            uint16_t &x = capacityTable[routerId][neighId];
+            x = x / maxCost_f * 65535;
+            NS_LOG_LOGIC("add route base table: " << routerId << " -> " << neighId << ", capacity: " << x);
         }
     }
 
