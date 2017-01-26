@@ -2173,13 +2173,13 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     }
 
     // NS_LOG_LOGIC("print calculation table for #router: " << m_routerId);
-    for (int c = 1, cl = routers; c < cl; ++c) {
-        for (int r = 1, rl = routers; r < rl; ++r) {
-            if (capacityTable[c][r] != 0) {
-                // NS_LOG_LOGIC("  " << c << " -> " << r << " => " << capacityTable[c][r]);
-            }
-        }
-    }
+    // for (int c = 1, cl = routers; c < cl; ++c) {
+    //     for (int r = 1, rl = routers; r < rl; ++r) {
+    //         if (capacityTable[c][r] != 0) {
+    //             NS_LOG_LOGIC("  " << c << " -> " << r << " => " << capacityTable[c][r]);
+    //         }
+    //     }
+    // }
 
     m_routingTable.SetRouters(routers);
     m_routingTable.Reset();
