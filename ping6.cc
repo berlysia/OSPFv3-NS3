@@ -175,10 +175,10 @@ int main (int argc, char **argv)
   internetv6.Install (ns);
 
   NS_LOG_INFO ("Create channels.");
-  Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (maxPackets));
 
   PointToPointHelper p2p;
   p2p.SetChannelAttribute ("Delay", TimeValue (MicroSeconds (delay)));
+  p2p.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(maxPackets));
   std::vector<NetDeviceContainer> devs, pdevs;
   for (int i = 0, l = conns; i < l; ++i) {
     p2p.SetDeviceAttribute ("DataRate", DataRateValue (dataRate));
