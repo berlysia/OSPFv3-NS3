@@ -22,7 +22,7 @@ NS_LOG_COMPONENT_DEFINE ("Ping6Example");
 #if 1
 int main (int argc, char **argv)
 {
-  bool verbose = false, printTable = false;
+  bool verbose = false, printTable = false, enableQueue = false;
   int nodes = 2;
   int waitTime = 10;
   int delay = 1000; // 0.001s = 1ms = 1000μs
@@ -49,6 +49,8 @@ int main (int argc, char **argv)
   std::cout << "waitTime: " << waitTime << "\n";
   std::cout << "delay: " << delay << "\n";
   std::cout << "dataRate: " << dataRate << "\n";
+  std::cout << "enableQueue: " << std::boolalpha << enableQueue << std::noboolalpha << "\n";
+  std::cout << "maxPackets: " << maxPackets << "\n";
   std::cout << "nodes: " << nodes << "\n";
   std::cout << std::endl;
 
@@ -168,7 +170,9 @@ int main (int argc, char **argv)
 
   PointToPointHelper p2p;
   p2p.SetChannelAttribute ("Delay", TimeValue (MicroSeconds (delay)));
-  p2p.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(maxPackets));
+  if (enableQueue) {
+    p2p.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(maxPackets));
+  }
   std::vector<NetDeviceContainer> devs, pdevs;
   for (int i = 0, l = conns; i < l; ++i) {
     p2p.SetDeviceAttribute ("DataRate", DataRateValue (dataRate));
@@ -255,22 +259,22 @@ int main (int argc, char **argv)
   // }
 
   int port = 17345;
-  UdpServerHelper server(port);
-  for (int i = 0, l = pingSrc.size(); i < l; ++i) {
-    NS_LOG_INFO("Install UDP to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
+  for (int i = 0, l = pingPairs; i < l; ++i) {
+    UdpServerHelper server(port);
     auto serverAddress = pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1);
+    NS_LOG_INFO("Install UDP to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
     UdpClientHelper client(serverAddress, port);
 
     client.SetAttribute ("MaxPackets", UintegerValue (pingPackets[i]));
     client.SetAttribute ("Interval", TimeValue (MicroSeconds(pingIntervals[i])));
     client.SetAttribute ("PacketSize", UintegerValue (pingSizes[i]));
     // ping6.SetRemote (pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1));
-    ApplicationContainer apps = server.Install(ns.Get(nodes + pingToNode[pingDst[i]]));
-    apps.Start (Seconds (pingStart[i]));
-    apps.Stop (Seconds (pingEnd[i]));
-    apps = client.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
-    apps.Start (Seconds (pingStart[i]));
-    apps.Stop (Seconds (pingEnd[i]));
+    ApplicationContainer serverApp = server.Install(ns.Get(nodes + pingToNode[pingDst[i]]));
+    serverApp.Start (Seconds (pingStart[i]));
+    serverApp.Stop (Seconds (pingEnd[i]));
+    ApplicationContainer clientApp = client.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
+    clientApp.Start (Seconds (pingStart[i]));
+    clientApp.Stop (Seconds (pingEnd[i]));
   }
 
   AsciiTraceHelper ascii;
