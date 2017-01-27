@@ -12,6 +12,7 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/internet-apps-module.h"
 #include "ns3/ipv6-static-routing-helper.h"
+#include "ns3/udp-client-server-helper.h"
 #include "ipv6-ospf-routing-helper.h"
 
 using namespace ns3;
@@ -40,17 +41,6 @@ int main (int argc, char **argv)
   cmd.AddValue ("maxPackets", "input maxPackets", maxPackets);
   cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
-  /*
-    # input file format (1-indexed)
-
-    [nodes]
-    [conns]
-    [src] [dst] [dataRate]
-    [src] [dst] [dataRate]
-    ...
-    [ping pairs]
-    [src] [dst] [packets] [interval(milliseconds)] [size]
-  */
 
   std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << "\n";
   std::cout << "printTable: " << printTable << "\n";
@@ -247,19 +237,38 @@ int main (int argc, char **argv)
   /* Create a Ping6 application to send ICMPv6 echo request from node zero to
    * all-nodes (ff02::1).
    */
-  Ping6Helper ping6;
+
+  // Ping6Helper ping6;
   // ping6.SetIfIndex (i.GetInterfaceIndex (0));
   // ping6.SetRemote (Ipv6Address::GetAllNodesMulticast ());
 
+  // for (int i = 0, l = pingSrc.size(); i < l; ++i) {
+  //   NS_LOG_INFO("Install Ping6 to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
+  //   ping6.SetAttribute ("MaxPackets", UintegerValue (pingPackets[i]));
+  //   ping6.SetAttribute ("Interval", TimeValue (MicroSeconds(pingIntervals[i])));
+  //   ping6.SetAttribute ("PacketSize", UintegerValue (pingSizes[i]));
+  //   ping6.SetLocal (pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1)); 
+  //   ping6.SetRemote (pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
+  //   ApplicationContainer apps = ping6.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
+  //   apps.Start (Seconds (pingStart[i]));
+  //   apps.Stop (Seconds (pingEnd[i]));
+  // }
 
+  int port = 17345;
+  UdpServerHelper server(port);
   for (int i = 0, l = pingSrc.size(); i < l; ++i) {
-    NS_LOG_INFO("Install Ping6 to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
-    ping6.SetAttribute ("MaxPackets", UintegerValue (pingPackets[i]));
-    ping6.SetAttribute ("Interval", TimeValue (MicroSeconds(pingIntervals[i])));
-    ping6.SetAttribute ("PacketSize", UintegerValue (pingSizes[i]));
-    ping6.SetLocal (pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1)); 
-    ping6.SetRemote (pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
-    ApplicationContainer apps = ping6.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
+    NS_LOG_INFO("Install UDP to Node #"<<pingSrc[i]<<" : " << pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1) << " -> " << pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1));
+    auto serverAddress = pifaces[pingToNode[pingDst[i]]].GetAddress (1, 1);
+    UdpClientHelper client(serverAddress, port);
+
+    client.SetAttribute ("MaxPackets", UintegerValue (pingPackets[i]));
+    client.SetAttribute ("Interval", TimeValue (MicroSeconds(pingIntervals[i])));
+    client.SetAttribute ("PacketSize", UintegerValue (pingSizes[i]));
+    // ping6.SetRemote (pifaces[pingToNode[pingSrc[i]]].GetAddress (1, 1));
+    ApplicationContainer apps = server.Install(ns.Get(nodes + pingToNode[pingDst[i]]));
+    apps.Start (Seconds (pingStart[i]));
+    apps.Stop (Seconds (pingEnd[i]));
+    apps = client.Install (ns.Get (nodes + pingToNode[pingSrc[i]]));
     apps.Start (Seconds (pingStart[i]));
     apps.Stop (Seconds (pingEnd[i]));
   }
