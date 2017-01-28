@@ -2124,6 +2124,9 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     NS_LOG_FUNCTION(m_routerId << recalcAll);
     // static uint16_t MAX_METRIC = 65535; // 2 ** 16 - 1
     static RouterId MAX_ROUTER_ID = 4294967295; // 2**32 - 1
+    static uint16_t INF_CAP = 65535;
+    static uint16_t MAX_CAP = 65534;
+    static uint16_t INF_COST = 65535;
     uint32_t routers = m_knownMaxRouterId + 1; // 0 is reserved
     // NS_LOG_LOGIC("CalcRoutingTable - routerId: " << m_routerId << ", routers: " << routers);
 
@@ -2135,8 +2138,6 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
     flowTable.resize(routers, std::vector<uint16_t>(routers, 0));
     adjacentTable.resize(routers);
     routingTable.resize(routers, std::vector<NextHopEntries>(routers));
-
-
     // NS_LOG_LOGIC("print entire LSDB");
     // for (auto& kv : m_lsdb.GetTable()) {
         // NS_LOG_LOGIC(" - " << *kv.second);
@@ -2144,31 +2145,24 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
 
     // build table
     // NS_LOG_LOGIC("build table");
-    uint16_t maxCost = 0;
     for (auto& id : m_routerLSA_set) {
         Ptr<OSPFLSA> rtrLSA = m_lsdb.Get(id);
         // NS_LOG_LOGIC("building ... " << *rtrLSA);
         RouterId routerId = rtrLSA->GetHeader()->GetAdvertisingRouter();
         auto rtrBody = rtrLSA->GetBody<OSPFRouterLSABody>();
         for (uint32_t idx = 0, l = rtrBody->CountNeighbors(); idx < l; ++idx) {
-            uint16_t caps = rtrBody->GetMetric(idx);
+            uint16_t cost = rtrBody->GetMetric(idx);
             RouterId neighId = rtrBody->GetNeighborRouterId(idx);
-            capacityTable[routerId][neighId] = caps;
-            if (maxCost < caps) maxCost = caps;
-            adjacentTable[routerId].push_back(neighId);
-        }
-    }
 
-    double maxCost_f = maxCost;
-    for (auto& id : m_routerLSA_set) {
-        Ptr<OSPFLSA> rtrLSA = m_lsdb.Get(id);
-        RouterId routerId = rtrLSA->GetHeader()->GetAdvertisingRouter();
-        auto rtrBody = rtrLSA->GetBody<OSPFRouterLSABody>();
-        for (uint32_t idx = 0, l = rtrBody->CountNeighbors(); idx < l; ++idx) {
-            RouterId neighId = rtrBody->GetNeighborRouterId(idx);
-            uint16_t &x = capacityTable[routerId][neighId];
-            x = x / maxCost_f * 65535;
-            NS_LOG_LOGIC("add route base table: " << routerId << " -> " << neighId << ", capacity: " << x);
+            if (cost == 0) {
+                capacityTable[routerId][neighId] = INF_CAP;
+            } else if (cost == INF_COST) {
+                capacityTable[routerId][neighId] = 0;
+            } else {
+                capacityTable[routerId][neighId] = MAX_CAP / (double)cost;
+            }
+            adjacentTable[routerId].push_back(neighId);
+            NS_LOG_WARN("add route base table: " << routerId << " -> " << neighId << ", capacity: " << capacityTable[routerId][neighId]);
         }
     }
 
@@ -2207,7 +2201,13 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                     fr = que.front(); que.pop();
                     for (uint32_t idx = 0, adjs = adjacentTable[fr].size(); idx < adjs; ++idx) {
                         to = adjacentTable[fr][idx];
-                        if ((capacityTable[fr][to] - flowTable[fr][to]) > 0 && level[to] < 0) {
+                        if (
+                            level[to] < 0 &&
+                            (
+                                capacityTable[fr][to] == INF_CAP ||
+                                (capacityTable[fr][to] - flowTable[fr][to]) > 0
+                            )
+                        ) {
                             level[to] = level[fr] + 1;
                             que.push(to);
                         }
@@ -2227,7 +2227,7 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                 // 増加道算出
                 // NS_LOG_LOGIC("( " << src << ", " << dst << " )" << "aug-pathを計算します");
 
-                routeFlow = 65535;
+                routeFlow = INF_CAP;
                 iter.assign(routers, 0);
                 sta.push(src);
                 while (!sta.empty()) {
@@ -2245,7 +2245,9 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                             if (fr == m_routerId) {
                                 nextHop = to;
                             }
-                            routeFlow = std::min(routeFlow, (uint32_t)(capacityTable[fr][to] - flowTable[fr][to]));
+                            if (capacityTable[fr][to] != INF_CAP) {
+                                routeFlow = std::min(routeFlow, (uint32_t)(capacityTable[fr][to] - flowTable[fr][to]));
+                            }
                         }
                         while (!sta.empty()) sta.pop();
 
@@ -2276,7 +2278,13 @@ void Ipv6OspfRouting::CalcRoutingTable (bool recalcAll) {
                             << ", caps["<<curr<<"]["<<next<<"]: " << (capacityTable[curr][next] - flowTable[curr][next]) << " => " << (level[curr] < level[next] && (capacityTable[curr][next] - flowTable[curr][next] > 0)) << std::noboolalpha
                         );
                         //*/
-                        if (level[curr] < level[next] && (capacityTable[curr][next] - flowTable[curr][next]) > 0) {
+                        if (
+                            level[curr] < level[next] &&
+                            (
+                                capacityTable[curr][next] == INF_CAP ||
+                                (capacityTable[curr][next] - flowTable[curr][next]) > 0
+                            )
+                        ) {
                             sta.push(next);
                             ++next;
                             break;
