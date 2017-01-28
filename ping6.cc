@@ -22,12 +22,7 @@ NS_LOG_COMPONENT_DEFINE ("Ping6Example");
 #if 1
 int main (int argc, char **argv)
 {
-  bool verbose = false, printTable = false, enableQueue = false;
-  int nodes = 2;
-  int waitTime = 10;
-  int delay = 1000; // 0.001s = 1ms = 1000μs
-  int maxPackets = 100;
-  unsigned long long dataRate = 1000000;
+  bool verbose = false, printTable = false;
   std::string inputFile = "", outputDir = "";
 
   CommandLine cmd;
@@ -35,28 +30,11 @@ int main (int argc, char **argv)
   cmd.AddValue ("printTable", "turn on log components", printTable);
   cmd.AddValue ("inputFile", "input file name", inputFile);
   cmd.AddValue ("outputDir", "input directory name", outputDir);
-  cmd.AddValue ("waitTime", "input wait time after ping finished(sec)", waitTime);
-  cmd.AddValue ("delay", "input delay time(μs)", delay);
-  cmd.AddValue ("dataRate", "input dataRate time(sec)", dataRate);
-  cmd.AddValue ("maxPackets", "input maxPackets", maxPackets);
-  cmd.AddValue ("nodes", "number of nodes", nodes);
   cmd.Parse (argc, argv);
-
-  std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << "\n";
-  std::cout << "printTable: " << printTable << "\n";
-  std::cout << "inputFile: " << inputFile << "\n";
-  std::cout << "outputDir: " << outputDir << "\n";
-  std::cout << "waitTime: " << waitTime << "\n";
-  std::cout << "delay: " << delay << "\n";
-  std::cout << "dataRate: " << dataRate << "\n";
-  std::cout << "enableQueue: " << std::boolalpha << enableQueue << std::noboolalpha << "\n";
-  std::cout << "maxPackets: " << maxPackets << "\n";
-  std::cout << "nodes: " << nodes << "\n";
-  std::cout << std::endl;
 
   int conns = nodes - 1;
   int pingPairs = 1;
-  std::vector<int> connSrc, connDst;
+  std::vector<int> connSrc, connDst, connDataRate, connQueueSize, connDelay;
   std::vector<int> pingSrc, pingDst, hasPings, pingToNode, pingPackets, pingIntervals, pingSizes, pingStart, pingEnd;
   
   if (verbose) {
@@ -82,11 +60,12 @@ int main (int argc, char **argv)
     ifs >> conns;
     connSrc.resize(conns);
     connDst.resize(conns);
+    connDataRate.resize(conns);
+    connQueueSize.resize(conns);
+    connDelay.resize(conns);
     for (int i = 0, l = conns; i < l; ++i) {
-      ifs >> connSrc[i] >> connDst[i];
+      ifs >> connSrc[i] >> connDst[i] >> connDataRate[i] >> connQueueSize[i] >> connDelay[i];
       NS_LOG_INFO("read conn: src " << connSrc[i] << ", dst " << connDst[i]);
-      connSrc[i];
-      connDst[i];
     }
     if (ifs.good()) {
       ifs >> pingPairs;
@@ -103,8 +82,6 @@ int main (int argc, char **argv)
     for (int i = 0; i < pingPairs; ++i) {
       ifs >> pingSrc[i] >> pingDst[i] >> pingPackets[i] >> pingIntervals[i] >> pingSizes[i] >> pingStart[i] >> pingEnd[i];
       NS_LOG_INFO("read ping: src " << pingSrc[i] << ", dst " << pingDst[i] << ", Packets " << pingPackets[i] << ", Intervals " << pingIntervals[i] << ", Sizes " << pingSizes[i]);
-      pingSrc[i];
-      pingDst[i];
     }
     ifs.close();
 
@@ -113,11 +90,15 @@ int main (int argc, char **argv)
     NS_LOG_INFO("ノード数から自動生成します: ノード数 " << nodes);
     connSrc.resize(conns);
     connDst.resize(conns);
-    // connDataRate.resize(conns);
+    connDataRate.resize(conns);
+    connQueueSize.resize(conns);
+    connDelay.resize(conns);
     for (int i = 0, l = conns; i < l; ++i) {
       connSrc[i] = i;
       connDst[i] = i + 1;
-      // connDataRate[i] = 5000000;
+      connDataRate[i] = 1000000;
+      connQueueSize[i] = 100;
+      connDelay[i] = 10;
     }
     pingSrc.push_back(connSrc[0]);
     pingDst.push_back(connDst.back());
@@ -169,13 +150,11 @@ int main (int argc, char **argv)
   NS_LOG_INFO ("Create channels.");
 
   PointToPointHelper p2p;
-  p2p.SetChannelAttribute ("Delay", TimeValue (MicroSeconds (delay)));
-  if (enableQueue) {
-    p2p.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(maxPackets));
-  }
   std::vector<NetDeviceContainer> devs, pdevs;
   for (int i = 0, l = conns; i < l; ++i) {
-    p2p.SetDeviceAttribute ("DataRate", DataRateValue (dataRate));
+    p2p.SetChannelAttribute ("Delay", TimeValue (MicroSeconds (connDelay[i])));
+    p2p.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(connQueueSize[i]));
+    p2p.SetDeviceAttribute ("DataRate", DataRateValue (connDataRate[i]));
     devs.push_back(p2p.Install(nc[i]));
   }
 
