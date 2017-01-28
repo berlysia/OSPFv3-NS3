@@ -32,6 +32,11 @@ int main (int argc, char **argv)
   cmd.AddValue ("outputDir", "input directory name", outputDir);
   cmd.Parse (argc, argv);
 
+  std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << std::endl;
+  std::cout << "printTable: " << std::boolalpha << printTable << std::noboolalpha << std::endl;
+  std::cout << "inputFile: " << inputFile << std::endl;
+  std::cout << "outputDir: " << outputDir << std::endl;
+
   int nodes = 2;
   int conns = nodes - 1;
   int pingPairs = 1;
