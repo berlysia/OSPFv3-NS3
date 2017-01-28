@@ -32,8 +32,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("outputDir", "input directory name", outputDir);
   cmd.Parse (argc, argv);
 
+  int nodes = 2;
   int conns = nodes - 1;
   int pingPairs = 1;
+  int waitTime = 10;
   std::vector<int> connSrc, connDst, connDataRate, connQueueSize, connDelay;
   std::vector<int> pingSrc, pingDst, hasPings, pingToNode, pingPackets, pingIntervals, pingSizes, pingStart, pingEnd;
   
