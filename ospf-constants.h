@@ -12,7 +12,7 @@ static const Time g_minLsInterval = Seconds(5.0);
 static const Time g_minLsArrival = Seconds(1.0);
 static const uint32_t g_maxAge = 3600; // seconds
 static const uint32_t g_checkAge = 300; // seconds
-static const uint32_t g_maxAgeDiff = 900; // seconds
+static const int32_t g_maxAgeDiff = 900; // seconds
 static const uint32_t g_lsInfinity = 0xffffff;
 static const Ipv6Address g_defaultDestination;
 static const int32_t g_initialSeqNum = 0x80000001;
