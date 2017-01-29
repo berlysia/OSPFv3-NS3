@@ -22,7 +22,7 @@ NS_LOG_COMPONENT_DEFINE ("Ping6Example");
 #if 1
 int main (int argc, char **argv)
 {
-  bool verbose = false, printTable = false;
+  bool verbose = false, printTable = false, withTraceFile = false;
   std::string inputFile = "", outputDir = "";
 
   CommandLine cmd;
@@ -30,6 +30,7 @@ int main (int argc, char **argv)
   cmd.AddValue ("printTable", "turn on log components", printTable);
   cmd.AddValue ("inputFile", "input file name", inputFile);
   cmd.AddValue ("outputDir", "input directory name", outputDir);
+  cmd.AddValue ("withTraceFile", "enable ascii traceFile", withTraceFile);
   cmd.Parse (argc, argv);
 
   std::cout << "verbose: " << std::boolalpha << verbose << std::noboolalpha << std::endl;
@@ -265,10 +266,12 @@ int main (int argc, char **argv)
 
   AsciiTraceHelper ascii;
   if (outputDir != "") {
-    p2p.EnableAsciiAll (ascii.CreateFileStream (outputDir + "/ping6.tr"));
+    if (withTraceFile)
+      p2p.EnableAsciiAll (ascii.CreateFileStream (outputDir + "/ping6.tr"));
     p2p.EnablePcapAll (std::string (outputDir + "/ping6"), true);
   } else {
-    p2p.EnableAsciiAll (ascii.CreateFileStream ("ping6.tr"));
+    if (withTraceFile)
+      p2p.EnableAsciiAll (ascii.CreateFileStream ("ping6.tr"));
     p2p.EnablePcapAll (std::string ("ping6"), true);
   }
 
